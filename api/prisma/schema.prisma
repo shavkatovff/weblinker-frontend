@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Lang {
+  UZ
+  RU
+  EN
+}
+
+// Ro'yxatdan o'tgan foydalanuvchi. Kirish kodi: loginOtp (Telegram orqali), 2 daqiqagacha
+model User {
+  id                Int       @id @default(autoincrement())
+  
+  publicId          String    @unique @default(cuid()) @map("public_id")
+  number            String    @unique
+  
+  telegramId        String?   @unique @map("telegram_id")
+
+  loginOtp          String?   @map("login_otp")
+  loginOtpExpiresAt DateTime? @map("login_otp_expires_at")
+
+  userId            String?   @unique @map("user_id")
+  username          String?
+  fullName          String?   @map("full_name")
+  
+  refreshToken      String?   @map("refresh_token")
+  refreshTokenExp   DateTime? @map("refresh_token_exp")
+  balance           Decimal   @default(0) @db.Decimal(12, 2)
+  lang              Lang      @default(UZ)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  vizitkas Vizitka[]
+  payments Payment[]
+
+  @@map("users")
+}
+
+/// CLICK balans to‘lovi (Prepare → Complete)
+model Payment {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  /// CLICK Prepare/Complete `amount` — so'm (butun son, hujjatga mos)
+  amount            Int
+  status            String    @default("PENDING")
+
+  merchantTransId   String    @unique @map("merchant_trans_id")
+  clickTransId      String?   @map("click_trans_id")
+  clickPaydocId     String?   @map("click_paydoc_id")
+  merchantPrepareId Int?      @map("merchant_prepare_id")
+  merchantConfirmId Int?      @map("merchant_confirm_id")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  paidAt            DateTime? @map("paid_at")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+// Ro'yxatdan o'tmagan: bot kontakt yuborishi bilan vaqtincha, sayt kodi to'g'ri kelsa users ga ko'chiriladi
+model TgUser {
+  id                 Int      @id @default(autoincrement())
+  /// Telegram `from.id` (string)
+  telegramUserId     String   @unique @map("userId")
+  username           String?
+  number             String   @unique
+  fullName           String?  @map("full_name")
+  loginOtp           String?  @map("login_otp")
+  loginOtpExpiresAt  DateTime? @map("login_otp_expires_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("tg_users")
+}
+
+/// Vizitka tarif — weblinker.uz/{name} (name noyob slug)
+model Vizitka {
+  id     String  @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int    @map("user_id")
+
+  plan  String  @default("vizitka")
+  /// Obuna muddati tugaguncha
+  expiredAt DateTime? @map("expired_at")
+
+  /// Manzil: /{name} noyob (faqat a-z, 0-9, -)
+  name  String  @unique
+  /// Brend / biznes nomi (sarlavha)
+  headline  String?
+  category  String?
+  photoUrl  String?  @map("photo_url")
+  contactNumber  String?  @map("contact_number")
+  address  String?
+  workHour  String?  @map("work_hour")
+  shortDescription  String?  @map("short_description")
+  description  String?  @map("description")
+
+  /// Shablon, dizayn (tahrirchi bilan sinxron)
+  templateId  String?  @map("template_id")
+  colorThemeId  String?  @map("color_theme_id")
+  patternId  String?  @map("pattern_id")
+
+  status  VizitkaStatus  @default(DRAFT)
+
+  mapLink  String?  @map("map_link")
+  instagramLink  String?  @map("instagram_link")
+  telegramLink  String?  @map("telegram_link")
+  tiktokLink  String?  @map("tiktok_link")
+  youtubeLink  String?  @map("youtube_link")
+  facebookLink  String?  @map("facebook_link")
+  linkedinLink  String?  @map("linkedin_link")
+  xLink  String?  @map("x_link")
+  threadsLink  String?  @map("threads_link")
+  whatsappLink  String?  @map("whatsapp_link")
+  websaytLink  String?  @map("website_link")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([name])
+  @@index([status])
+  @@map("vizitkas")
+}
+
+enum VizitkaStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
