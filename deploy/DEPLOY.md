@@ -165,7 +165,8 @@ Agar faqat `.env` dagi `NEXT_PUBLIC_*` o‘zgargan bo‘lsa — **`npm run build
 ## Muammolar
 
 - **Bir serverda noto‘g‘ri sayt / boshqa front chiqyapti:** [deploy/NGINX-MULTI-SITE.md](NGINX-MULTI-SITE.md) — `server_name`, port ziddiyati, `default_server`.
-- **Prisma P1012 / Prisma 7:** `npx prisma` (versiyasiz) yoki global **Prisma 7** ishlatilmaydi. Faqat `npm run migrate:deploy` yoki `npx prisma@5.22.0 ...`.
+- **Prisma P3018 / migratsiya:** Repoda endi **boshlang‘ich** migratsiya bor (`20260101000000_init_schema`). `git pull`, keyin bo‘sh/yomon holatda bazani tiklash: ma’lumotlar muhim emas bo‘lsa `psql` ichida `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` va DB user uchun `GRANT ALL ON SCHEMA public ...`, keyin `npm run migrate:deploy`.
+- **Prisma P1012 / Prisma 7:** `npx prisma` (versiyasiz) **ishlatilmaydi**. Faqat `npm run migrate:deploy` yoki `npx prisma@5.22.0 ...`.
 - **CORS xatosi:** `FRONTEND_ORIGIN` da aynan brauzerdagi manzil (https, `www` bo‘lsa qo‘shing).
 - **API 502:** PM2 da `weblinker-api` ishlayaptimi; Nginx `weblinker.uz` uchun `/auth`, `/vizitka` va boshqalar **Nest** ga proxylanayaptimi (namuna: [nginx-weblinker.conf.example](./nginx-weblinker.conf.example)); `api` subdomen ishlatilsa, u ham shu portga tushadi.
 - **Sertifikat:** domenlar DNS da to‘g‘ri IP ga ko‘rsatayotganini va 80-port ochiq ekanini tekshiring.
