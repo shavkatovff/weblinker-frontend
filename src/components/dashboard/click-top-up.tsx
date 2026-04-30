@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 type Me = { user: { balance: number } };
 
@@ -16,10 +17,17 @@ type CreateClickPaymentRes = {
   merchantUserId: string;
 };
 
-/** CLICK hujjati: https://my.click.uz/services/pay — amount format N.NN */
+const PRESET_SOMS = [10_000, 25_000, 50_000, 100_000] as const;
+const MIN_SOM = 1000;
+
+/**
+ * Rasmiy: https://my.click.uz/services/pay
+ * (O‘qituvchi loyihadagi kabi: service_id, merchant_id, amount, transaction_param, return_url;
+ * karta turi — Click o‘z sahifasida tanlanadi, `card_type` yuborilmaydi.)
+ */
 function buildClickPayUrl(
   p: CreateClickPaymentRes,
-  opts: { returnUrl: string; cardType: "uzcard" | "humo" },
+  returnUrl: string,
 ): string {
   const amount = p.amountSom.toFixed(2);
   const q = new URLSearchParams({
@@ -28,15 +36,13 @@ function buildClickPayUrl(
     merchant_user_id: p.merchantUserId,
     amount,
     transaction_param: p.merchantTransId,
-    return_url: opts.returnUrl,
-    card_type: opts.cardType,
+    return_url: returnUrl,
   });
   return `https://my.click.uz/services/pay?${q.toString()}`;
 }
 
 export function ClickTopUpPanel() {
   const [amountSom, setAmountSom] = useState(10_000);
-  const [cardType, setCardType] = useState<"uzcard" | "humo">("uzcard");
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -64,8 +70,8 @@ export function ClickTopUpPanel() {
 
   async function pay() {
     setMessage(null);
-    if (!Number.isFinite(amountSom) || amountSom < 1000) {
-      setMessage("Kamida 1000 so‘m kiriting.");
+    if (!Number.isFinite(amountSom) || amountSom < MIN_SOM) {
+      setMessage(`Kamida ${MIN_SOM.toLocaleString("uz-UZ")} so‘m.`);
       return;
     }
 
@@ -85,28 +91,21 @@ export function ClickTopUpPanel() {
 
     const returnUrl =
       typeof window !== "undefined"
-        ? `${window.location.origin}/dashboard/billing`
-        : "/dashboard/billing";
+        ? `${window.location.origin}/dashboard/billing?click=1`
+        : "/dashboard/billing?click=1";
 
-    const url = buildClickPayUrl(payment, { returnUrl, cardType });
-    window.open(url, "_blank", "noopener,noreferrer");
-
-    setMessage(
-      "CLICK to‘lov sahifasi yangi tabda ochildi. To‘lovdan keyin bu yerga qayting — balans Complete callback dan keyin yangilanadi.",
-    );
-    setLoading(false);
-    void refreshBalance();
+    const url = buildClickPayUrl(payment, returnUrl);
+    window.location.assign(url);
   }
 
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-white p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-neutral-900">Balans to‘ldirish (CLICK)</h2>
       <p className="mt-2 text-sm text-neutral-600">
-        Rasmiy yo‘l:{" "}
-        <code className="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">my.click.uz/services/pay</code>{" "}
-        — summa <strong className="font-medium text-neutral-800">N.NN</strong> (so‘m, ikki xona qoldiq).
-        Balans faqat CLICK <strong className="font-medium text-neutral-800">Complete</strong> muvaffaqiyatidan
-        keyin qo‘shiladi.
+        Summani kiriting yoki tezkor tanlovni bosing. To‘lov{" "}
+        <strong className="font-medium text-neutral-800">my.click.uz</strong> da ochiladi — Uzcard yoki
+        Humoni <strong className="font-medium text-neutral-800">Click sahifasida</strong> tanlaysiz.
+        Balans to‘lov muvaffaqiyatidan keyin yangilanadi.
       </p>
 
       {balance != null && (
@@ -118,40 +117,56 @@ export function ClickTopUpPanel() {
         </p>
       )}
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        {PRESET_SOMS.map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => {
+              setAmountSom(v);
+              setMessage(null);
+            }}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+              amountSom === v
+                ? "border-black bg-neutral-900 text-white"
+                : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-neutral-400",
+            )}
+          >
+            {(v / 1000).toLocaleString("uz-UZ")}k
+          </button>
+        ))}
+      </div>
+
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <label className="block min-w-0 flex-1 sm:min-w-[140px]">
+        <label className="block min-w-0 flex-1 sm:min-w-[180px]">
           <span className="mb-1.5 block text-xs font-medium text-neutral-600">Summa (so‘m)</span>
           <input
             type="number"
             inputMode="numeric"
-            min={1000}
+            min={MIN_SOM}
             step={1000}
             value={amountSom}
             onChange={(e) => setAmountSom(Number(e.target.value))}
             className="h-11 w-full rounded-lg border border-neutral-200 px-3 text-sm outline-none ring-black/5 transition focus:border-black focus:ring-2"
           />
         </label>
-        <label className="block min-w-0 sm:w-40">
-          <span className="mb-1.5 block text-xs font-medium text-neutral-600">Karta turi</span>
-          <select
-            value={cardType}
-            onChange={(e) => setCardType(e.target.value as "uzcard" | "humo")}
-            className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-black focus:ring-2"
-          >
-            <option value="uzcard">Uzcard</option>
-            <option value="humo">Humo</option>
-          </select>
-        </label>
         <Button type="button" onClick={() => void pay()} disabled={loading} className="h-11 shrink-0">
-          {loading ? "Kutilmoqda…" : "CLICK orqali to‘lash"}
+          {loading ? "Jo‘natilmoqda…" : "CLICK ga o‘tish"}
         </Button>
       </div>
 
       {message ? (
-        <p className="mt-4 text-sm text-neutral-700" role="status">
+        <p className="mt-4 text-sm text-amber-800" role="status">
           {message}
         </p>
       ) : null}
+
+      <p className="mt-4 text-xs text-neutral-500">
+        Serverda Prepare/Complete URL lar kabinetga mos qo‘yilgan bo‘lishi kerak (
+        <code className="rounded bg-neutral-100 px-1">/api/payments/click/prepare</code> va{" "}
+        <code className="rounded bg-neutral-100 px-1">complete</code>).
+      </p>
     </div>
   );
 }
