@@ -23,7 +23,8 @@ export class PaymentService {
   ) {}
 
   private secretKey(): string {
-    const s = this.config.get<string>('CLICK_SECRET_KEY');
+    const raw = this.config.get<string | undefined>('CLICK_SECRET_KEY');
+    const s = typeof raw === 'string' ? raw.trim() : '';
     if (!s) throw new Error('CLICK_SECRET_KEY is not set');
     return s;
   }
