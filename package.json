@@ -9,6 +9,7 @@
     "build": "next build",
     "build:all": "npm run build:api && next build",
     "build:api": "npm run build --prefix api",
+    "migrate:deploy": "npm run prisma:migrate:deploy --prefix api",
     "start": "cross-env TZ=Asia/Tashkent next start",
     "lint": "eslint"
   },
