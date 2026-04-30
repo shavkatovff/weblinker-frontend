@@ -63,7 +63,16 @@ cd $ROOT
 npm run migrate:deploy
 ```
 
-Bu `dotenv -e ../.env` bilan ishlaydi va **local** `prisma` CLIni ishlatadi.
+Skript **Prisma 5.22.0** CLIni `npx prisma@5.22.0` orqali chaqiradi (global o‘rnatilgan Prisma 7 bundan **ta’sir qilmaydi**).
+
+Agar hozir qo‘lda bajarsangiz (`api` papkasida, `.env` loyiha ildizida):
+
+```bash
+cd ~/weblinker-frontend/api
+dotenv -e ../.env -- npx prisma@5.22.0 migrate deploy
+```
+
+(`npm ci` avval `api` ichida bajarilgan bo‘lsin — `dotenv-cli` mavjud bo‘ladi.)
 
 ## 4. PM2 (yoki systemd)
 
@@ -148,7 +157,7 @@ Agar faqat `.env` dagi `NEXT_PUBLIC_*` o‘zgargan bo‘lsa — **`npm run build
 
 ## Muammolar
 
-- **Prisma P1012 / Prisma 7:** `api` uchun `npm ci` qiling va faqat `npm run migrate:deploy` ishlating; global `prisma` yoki `npx prisma` ni ishlatmang.
+- **Prisma P1012 / Prisma 7:** `npx prisma` (versiyasiz) yoki global **Prisma 7** ishlatilmaydi. Faqat `npm run migrate:deploy` yoki `npx prisma@5.22.0 ...`.
 - **CORS xatosi:** `FRONTEND_ORIGIN` da aynan brauzerdagi manzil (https, `www` bo‘lsa qo‘shing).
 - **API 502:** PM2 da API ishlayotganini va `API_PORT=8001` ni tekshiring; Nginx `api.weblinker.uz` ni shu portga proxylayotganini tekshiring.
 - **Sertifikat:** domenlar DNS da to‘g‘ri IP ga ko‘rsatayotganini va 80-port ochiq ekanini tekshiring.
