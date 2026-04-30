@@ -1,40 +1,10 @@
-const path = require("path");
-
-const root = path.join(__dirname, "..");
-
 /**
- * PM2 (Linux server): loyiha ildizidan
- *   cp deploy/ecosystem.config.cjs.example deploy/ecosystem.config.cjs
- *   pm2 start deploy/ecosystem.config.cjs
+ * @deprecated — endi ildizdagi weblinker.config.cjs ishlatiladi.
  *
- * .env loyiha ildizida bo‘lishi kerak (Nest va Next server qismi uchun).
+ *   cd <loyiha-ildizi>
+ *   npm run build:all
+ *   pm2 start weblinker.config.cjs
+ *
+ * Back-compat:
  */
-module.exports = {
-  apps: [
-    {
-      name: "weblinker-web",
-      cwd: root,
-      script: "npm",
-      args: "run start -- --hostname 127.0.0.1 --port 3000",
-      instances: 1,
-      exec_mode: "fork",
-      env: {
-        NODE_ENV: "production",
-        TZ: "Asia/Tashkent",
-        PORT: "3000",
-      },
-    },
-    {
-      name: "weblinker-api",
-      cwd: path.join(root, "api"),
-      script: "dist/main.js",
-      instances: 1,
-      exec_mode: "fork",
-      env: {
-        NODE_ENV: "production",
-        TZ: "Asia/Tashkent",
-        API_PORT: "8001",
-      },
-    },
-  ],
-};
+module.exports = require("../weblinker.config.cjs");

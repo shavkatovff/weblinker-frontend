@@ -81,9 +81,10 @@ Loyiha ildizida (`cd $ROOT`):
 
 ```bash
 sudo npm i -g pm2
-# ecosystem faylini nusxalab, yo‘llarni tekshiring
-cp deploy/ecosystem.config.cjs.example deploy/ecosystem.config.cjs
-pm2 start deploy/ecosystem.config.cjs
+# PM2: api/dist/main.js va Next .next — avval build
+npm run build:all
+pm2 start weblinker.config.cjs
+# yoki: npm run pm2
 pm2 save
 pm2 startup   # ko‘rsatma bo‘yicha systemd qo‘shing
 ```
