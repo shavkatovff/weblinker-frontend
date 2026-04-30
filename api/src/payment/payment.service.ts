@@ -16,6 +16,15 @@ function bodyRecord(body: unknown): Record<string, unknown> {
   return {};
 }
 
+/** CLICK body dagi `error` — bo‘lmasa undefined */
+function parseClickErrorField(data: Record<string, unknown>): number | undefined {
+  if (!('error' in data)) return undefined;
+  const v = data.error;
+  if (v === null || v === undefined || v === '') return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 /** CLICK action — `Number(null)` va `Number('')` JS da 0 bo‘lmasligi kerak */
 function parseClickAction(data: Record<string, unknown>): number | undefined {
   if (!('action' in data)) return undefined;
@@ -24,6 +33,7 @@ function parseClickAction(data: Record<string, unknown>): number | undefined {
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 }
+
 
 @Injectable()
 export class PaymentService {
@@ -53,6 +63,23 @@ export class PaymentService {
   private sameAmountSom(stored: number, fromClick: number): boolean {
     return Math.abs(stored - fromClick) < 0.01;
   }
+
+  /** Otbozor (horse-backend) kabi: CLICK `service_id` kabinetdagi bilan mos bo‘lsin */
+  private clickServiceIdMismatch(
+    data: Record<string, unknown>,
+  ): { error: number; error_note: string } | null {
+    const expectedRaw = this.config.get<string>('CLICK_SERVICE_ID')?.trim();
+    const expected = Number(expectedRaw);
+    if (!Number.isFinite(expected)) {
+      throw new InternalServerErrorException('CLICK_SERVICE_ID is not set');
+    }
+    const sid = Number(data.service_id);
+    if (!Number.isFinite(sid) || sid !== expected) {
+      return { error: -2, error_note: 'Incorrect parameter amount' };
+    }
+    return null;
+  }
+
 
   async createClickPayment(userId: number, amountSom: number) {
     const amount = this.assertAmountSom(amountSom);
@@ -109,6 +136,9 @@ export class PaymentService {
       return { error: -3, error_note: 'Action not found' };
     }
 
+    const svcErr = this.clickServiceIdMismatch(data);
+    if (svcErr) return svcErr;
+
     if (!checkPrepareSign(this.secretKey(), data)) {
       return { error: -1, error_note: 'SIGN CHECK FAILED!' };
     }
@@ -125,8 +155,36 @@ export class PaymentService {
       return { error: -4, error_note: 'Already paid' };
     }
 
+    if (payment.status === 'CANCELLED') {
+      return { error: -9, error_note: 'Transaction cancelled' };
+    }
+
     if (!this.sameAmountSom(payment.amount, amount)) {
       return { error: -2, error_note: 'Incorrect parameter amount' };
+    }
+
+    if (payment.status === 'PREPARED') {
+      return {
+        click_trans_id: clickTransId,
+        merchant_trans_id: merchantTransId,
+        merchant_prepare_id: payment.merchantPrepareId ?? payment.id,
+        error: 0,
+        error_note: 'Success',
+      };
+    }
+
+    const prepareErr = parseClickErrorField(data);
+    if (prepareErr !== undefined && prepareErr < 0) {
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'CANCELLED',
+          clickTransId,
+          clickPaydocId: String(data.click_paydoc_id ?? ''),
+        },
+      });
+
+      return { error: -9, error_note: 'Transaction cancelled' };
     }
 
     const updated = await this.prisma.payment.update({
@@ -160,6 +218,9 @@ export class PaymentService {
     if (action !== 1) {
       return { error: -3, error_note: 'Action not found' };
     }
+
+    const completeSvcErr = this.clickServiceIdMismatch(data);
+    if (completeSvcErr) return completeSvcErr;
 
     if (!checkCompleteSign(this.secretKey(), data)) {
       return { error: -1, error_note: 'SIGN CHECK FAILED!' };
