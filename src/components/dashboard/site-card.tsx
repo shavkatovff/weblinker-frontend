@@ -8,6 +8,7 @@ import { UnknownSite } from "@/lib/store/types";
 import { trialDaysLeft, deleteSite, duplicateSite } from "@/lib/store/store";
 import { downloadSiteQRCode } from "@/components/editor/qr-code";
 import { cn } from "@/lib/cn";
+import { api, ApiError } from "@/lib/api";
 
 export function SiteCard({ site }: { site: UnknownSite }) {
   const days = trialDaysLeft(site);
@@ -123,6 +124,9 @@ function StatusBadge({ status }: { status: UnknownSite["status"] }) {
 function Menu({ site }: { site: UnknownSite }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -134,13 +138,27 @@ function Menu({ site }: { site: UnknownSite }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("click", onDoc);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("click", onDoc);
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !deleting) setDeleteOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [deleteOpen, deleting]);
 
   const handleDuplicate = () => {
     const copy = duplicateSite(site.id);
@@ -154,15 +172,36 @@ function Menu({ site }: { site: UnknownSite }) {
     downloadSiteQRCode(url, `weblinker-${site.slug}`).catch(() => {});
   };
 
-  const handleDelete = () => {
-    if (
-      confirm(
-        `"${site.content.businessName}" saytini o'chirib yubormoqchimisiz? Bu amalni qaytarib bo'lmaydi.`,
-      )
-    ) {
-      deleteSite(site.id);
-    }
+  const handleDeleteClick = () => {
     setOpen(false);
+    setDeleteError(null);
+    setDeleteOpen(true);
+  };
+
+  const runDelete = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      if (site.type === "vizitka") {
+        try {
+          await api(`/vizitka/${encodeURIComponent(site.id)}`, { method: "DELETE" });
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 404) {
+            /* bazada yo‘q — faqat mahalliy nusxani olib tashlash */
+          } else {
+            throw e;
+          }
+        }
+      }
+      deleteSite(site.id);
+      setDeleteOpen(false);
+    } catch (e) {
+      const msg =
+        e instanceof ApiError ? e.message : "O'chirishda xato yuz berdi. Qayta urinib ko'ring.";
+      setDeleteError(msg);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -171,7 +210,10 @@ function Menu({ site }: { site: UnknownSite }) {
         type="button"
         aria-label="Qo'shimcha amallar"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
         className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[color:var(--border)] text-black transition-colors hover:border-black"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -181,14 +223,68 @@ function Menu({ site }: { site: UnknownSite }) {
         </svg>
       </button>
       {open ? (
-        <div className="absolute right-0 top-11 z-10 w-44 overflow-hidden rounded-lg border border-[color:var(--border)] bg-white shadow-[0_14px_40px_-18px_rgba(0,0,0,0.3)]">
+        <div
+          className="absolute right-0 top-11 z-10 w-44 overflow-hidden rounded-lg border border-[color:var(--border)] bg-white shadow-[0_14px_40px_-18px_rgba(0,0,0,0.3)]"
+          onClick={(e) => e.stopPropagation()}
+        >
           <MenuButton onClick={handleDownloadQR}>QR yuklash</MenuButton>
           <div className="h-px bg-[color:var(--border)]" />
           <MenuButton onClick={handleDuplicate}>Nusxa olish</MenuButton>
           <div className="h-px bg-[color:var(--border)]" />
-          <MenuButton destructive onClick={handleDelete}>
+          <MenuButton destructive onClick={handleDeleteClick}>
             O&apos;chirish
           </MenuButton>
+        </div>
+      ) : null}
+
+      {deleteOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="delete-site-title"
+          aria-describedby="delete-site-desc"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Bekor qilish"
+            disabled={deleting}
+            onClick={() => !deleting && setDeleteOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-[color:var(--border)] bg-white p-6 shadow-xl">
+            <h2 id="delete-site-title" className="text-lg font-semibold text-black">
+              Saytni o&apos;chirish
+            </h2>
+            <p id="delete-site-desc" className="mt-3 text-sm leading-relaxed text-neutral-600">
+              <span className="font-semibold text-black">{site.content.businessName}</span> (
+              <span className="font-mono text-neutral-800">{site.slug}</span>) butunlay o&apos;chiriladi.
+              Bu amaldan keyin ma&apos;lumotlarni qayta tiklab bo&apos;lmaydi.
+            </p>
+            {deleteError ? (
+              <p className="mt-3 text-sm text-red-600" role="alert">
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteOpen(false)}
+                className="inline-flex h-10 items-center rounded-md border border-[color:var(--border)] bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-neutral-50 disabled:opacity-50"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => void runDelete()}
+                className="inline-flex h-10 items-center rounded-md bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "O'chirilmoqda…" : "Ha, o'chirish"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

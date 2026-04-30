@@ -66,6 +66,16 @@ export function deleteSite(id: string): void {
   writeAll(readAll().filter((s) => s.id !== id));
 }
 
+/**
+ * Mahalliy `vizitka`larni serverdagi ro‘yxat bilan almashtiradi — faqat joriy JWT foydalanuvchisining
+ * vizitkalari qoladi; boshqa akkaunt qoldiqlari olib tashlanadi. `landing`lar o‘zgarmaydi.
+ */
+export function replaceVizitkasFromServer(vizitkasFromServer: UnknownSite[]): void {
+  const landings = readAll().filter((s) => s.type === "landing");
+  const vizitkas = vizitkasFromServer.filter((s) => s.type === "vizitka");
+  writeAll([...landings, ...vizitkas]);
+}
+
 export function duplicateSite(id: string): UnknownSite | undefined {
   const src = getSiteById(id);
   if (!src) return undefined;

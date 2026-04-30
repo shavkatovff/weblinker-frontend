@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Logo } from "@/components/marketing/logo";
+import { Logo, LogoMark } from "@/components/marketing/logo";
 import { cn } from "@/lib/cn";
 import { api } from "@/lib/api";
 import { e164ToDisplay } from "@/lib/phone";
 import { clearTokens, getAccessToken } from "@/lib/auth-storage";
+import { useMobileNav } from "@/components/dashboard/mobile-nav-context";
 
 type MeUser = {
   number: string;
@@ -43,48 +44,7 @@ function userTitle(u: MeUser) {
 }
 
 function userSubtitle(u: MeUser) {
-  if (u.username?.trim()) return `@${u.username.trim()}`;
   return e164ToDisplay(u.number);
-}
-
-export function Sidebar() {
-  const pathname = usePathname() ?? "";
-  return (
-    <aside className="hidden h-full min-h-0 w-64 flex-shrink-0 flex-col border-r border-[color:var(--border)] bg-white lg:flex">
-      <div className="flex h-16 items-center border-b border-[color:var(--border)] px-5">
-        <Logo />
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigatsiya">
-        <ul className="flex flex-col gap-0.5">
-          {navItems.map((item) => {
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    active
-                      ? "bg-black text-white"
-                      : "text-neutral-700 hover:bg-neutral-100 hover:text-black",
-                  )}
-                >
-                  <span className="flex h-4 w-4 items-center justify-center">{item.icon}</span>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      <div className="mt-auto border-t border-[color:var(--border)] p-2.5">
-        <SidebarUserCard />
-      </div>
-    </aside>
-  );
 }
 
 function MenuRowLink(props: {
@@ -92,10 +52,12 @@ function MenuRowLink(props: {
   external?: boolean;
   children: React.ReactNode;
   icon: React.ReactNode;
+  onNavigate?: () => void;
 }) {
   return (
     <a
       href={props.href}
+      onClick={() => props.onNavigate?.()}
       {...(props.external
         ? { target: "_blank", rel: "noopener noreferrer" }
         : ({} as { target?: string; rel?: string }))}
@@ -109,7 +71,11 @@ function MenuRowLink(props: {
   );
 }
 
-function MenuRowButton(props: { onClick: () => void; children: React.ReactNode; icon: React.ReactNode }) {
+function MenuRowButton(props: {
+  onClick: () => void;
+  children: React.ReactNode;
+  icon: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -124,9 +90,29 @@ function MenuRowButton(props: { onClick: () => void; children: React.ReactNode; 
   );
 }
 
-function SidebarUserCard() {
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M5 7.5L10 12.5L15 7.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SidebarUserCard({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<MeUser | null | "loading">("loading");
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !getAccessToken()) {
@@ -167,7 +153,15 @@ function SidebarUserCard() {
 
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-white p-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-      <div className="flex items-start gap-3 border-b border-neutral-100 pb-3">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-center gap-3 rounded-lg py-0.5 text-left outline-none ring-offset-2 transition-colors hover:bg-neutral-50/80 focus-visible:ring-2 focus-visible:ring-neutral-300"
+        aria-expanded={expanded}
+        aria-controls={expanded ? "sidebar-user-menu" : undefined}
+        id="sidebar-user-profile-trigger"
+        aria-label={expanded ? "Profil menyusini yopish" : "Profil menyusini ochish"}
+      >
         <div
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-teal-500 text-sm font-semibold text-white"
           aria-hidden
@@ -178,46 +172,176 @@ function SidebarUserCard() {
           <p className="truncate text-sm font-semibold text-neutral-900">{userTitle(user)}</p>
           <p className="mt-0.5 truncate text-xs text-neutral-500">{userSubtitle(user)}</p>
         </div>
+        <ChevronDownIcon
+          className={cn("h-5 w-5 shrink-0 text-neutral-400 transition-transform duration-200", expanded && "rotate-180")}
+        />
+      </button>
+
+      {expanded ? (
+        <ul
+          id="sidebar-user-menu"
+          className="mt-3 space-y-0.5 border-t border-neutral-100 pt-3"
+          role="list"
+          aria-labelledby="sidebar-user-profile-trigger"
+        >
+          <li>
+            <Link
+              href="/dashboard/billing"
+              onClick={() => onNavigate?.()}
+              className="flex items-center gap-2.5 rounded-lg py-1.5 pl-0.5 pr-1 text-sm text-neutral-800 transition-colors hover:bg-neutral-50"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+                <WalletIcon />
+              </span>
+              <span className="min-w-0 flex-1 font-medium">Balans +</span>
+              <span className="shrink-0 text-xs text-neutral-500" title="so'm">
+                {formatUzs(user.balance)} <span className="text-[10px]">so'm</span>
+              </span>
+            </Link>
+          </li>
+          <li>
+            <MenuRowLink href={SUPPORT_URL} external icon={<HeadsetIcon />} onNavigate={onNavigate}>
+              Support
+            </MenuRowLink>
+          </li>
+          <li>
+            <Link
+              href="/dashboard/settings"
+              onClick={() => onNavigate?.()}
+              className="flex items-center gap-2.5 rounded-lg py-1.5 pl-0.5 pr-1 text-sm text-neutral-800 transition-colors hover:bg-neutral-50"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+                <PersonIcon />
+              </span>
+              <span className="min-w-0 flex-1 font-medium">Profil</span>
+            </Link>
+          </li>
+          <li className="!mt-1.5 border-t border-neutral-100 pt-1.5">
+            <MenuRowButton onClick={onLogout} icon={<LogoutIcon />}>
+              Chiqish
+            </MenuRowButton>
+          </li>
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function SidebarBrand({ onPress }: { onPress?: () => void }) {
+  if (onPress) {
+    return (
+      <button
+        type="button"
+        onClick={onPress}
+        className="inline-flex items-center gap-2.5 text-left text-[16px] font-semibold tracking-tight text-black outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-neutral-300"
+        aria-label="Menyuni yopish"
+      >
+        <LogoMark variant="v2" size={24} />
+        <span>Weblinker</span>
+      </button>
+    );
+  }
+  return <Logo />;
+}
+
+function SidebarPanel({
+  onNavigate,
+  onLogoClick,
+}: {
+  onNavigate?: () => void;
+  onLogoClick?: () => void;
+}) {
+  const pathname = usePathname() ?? "";
+  return (
+    <>
+      <div className="flex h-16 shrink-0 items-center border-b border-[color:var(--border)] px-5">
+        <SidebarBrand onPress={onLogoClick} />
       </div>
 
-      <ul className="mt-1 space-y-0.5 pt-1" role="list">
-        <li>
-          <Link
-            href="/dashboard/billing"
-            className="flex items-center gap-2.5 rounded-lg py-1.5 pl-0.5 pr-1 text-sm text-neutral-800 transition-colors hover:bg-neutral-50"
-          >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <WalletIcon />
-            </span>
-            <span className="min-w-0 flex-1 font-medium">Balans +</span>
-            <span className="shrink-0 text-xs text-neutral-500" title="so'm">
-              {formatUzs(user.balance)} <span className="text-[10px]">so'm</span>
-            </span>
-          </Link>
-        </li>
-        <li>
-          <MenuRowLink href={SUPPORT_URL} external icon={<HeadsetIcon />}>
-            Support
-          </MenuRowLink>
-        </li>
-        <li>
-          <Link
-            href="/dashboard/settings"
-            className="flex items-center gap-2.5 rounded-lg py-1.5 pl-0.5 pr-1 text-sm text-neutral-800 transition-colors hover:bg-neutral-50"
-          >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <PersonIcon />
-            </span>
-            <span className="min-w-0 flex-1 font-medium">Profil</span>
-          </Link>
-        </li>
-        <li className="!mt-1.5 border-t border-neutral-100 pt-1.5">
-          <MenuRowButton onClick={onLogout} icon={<LogoutIcon />}>
-            Chiqish
-          </MenuRowButton>
-        </li>
-      </ul>
-    </div>
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Dashboard navigatsiya">
+        <ul className="flex flex-col gap-0.5">
+          {navItems.map((item) => {
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => onNavigate?.()}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-black text-white"
+                      : "text-neutral-700 hover:bg-neutral-100 hover:text-black",
+                  )}
+                >
+                  <span className="flex h-4 w-4 items-center justify-center">{item.icon}</span>
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <div className="mt-auto shrink-0 border-t border-[color:var(--border)] p-2.5">
+        <SidebarUserCard onNavigate={onNavigate} />
+      </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const pathname = usePathname() ?? "";
+  const { mobileOpen, setMobileOpen } = useMobileNav();
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  return (
+    <>
+      <aside className="hidden h-full min-h-0 w-64 flex-shrink-0 flex-col border-r border-[color:var(--border)] bg-white lg:flex">
+        <SidebarPanel />
+      </aside>
+
+      <div
+        className={cn("fixed inset-0 z-40 lg:hidden", !mobileOpen && "pointer-events-none")}
+        aria-hidden={!mobileOpen}
+      >
+        <button
+          type="button"
+          className={cn(
+            "absolute inset-0 bg-black/40 transition-opacity duration-200",
+            mobileOpen ? "opacity-100" : "opacity-0",
+          )}
+          onClick={() => setMobileOpen(false)}
+          aria-label="Menyuni yopish"
+          tabIndex={mobileOpen ? 0 : -1}
+        />
+        <aside
+          id="dashboard-mobile-nav"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Dashboard menyusi"
+          className={cn(
+            "absolute left-0 top-0 flex h-full min-h-0 w-64 max-w-[85vw] flex-col border-r border-[color:var(--border)] bg-white shadow-xl transition-transform duration-200 ease-out",
+            mobileOpen ? "translate-x-0" : "-translate-x-full pointer-events-none",
+          )}
+        >
+          <SidebarPanel onNavigate={() => setMobileOpen(false)} onLogoClick={() => setMobileOpen(false)} />
+        </aside>
+      </div>
+    </>
   );
 }
 

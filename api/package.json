@@ -15,6 +15,7 @@
     "prisma:generate": "dotenv -e ../.env -- prisma generate",
     "prisma:migrate": "dotenv -e ../.env -- prisma migrate dev",
     "prisma:push": "dotenv -e ../.env -- prisma db push",
+    "prisma:reset": "dotenv -e ../.env -- prisma db push --force-reset",
     "postinstall": "dotenv -e ../.env -- prisma generate",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",

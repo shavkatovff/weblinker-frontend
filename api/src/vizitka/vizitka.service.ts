@@ -120,15 +120,15 @@ export class VizitkaService {
     return { site: this.toPublicSiteJson(v) };
   }
 
-  async listMine(userId: number) {
+  async listMine(ownerPublicId: string) {
     const list = await this.prisma.vizitka.findMany({
-      where: { userId },
+      where: { ownerPublicId },
       orderBy: { updatedAt: "desc" },
     });
     return { items: list.map((v) => this.toPublicSiteJson(v)) };
   }
 
-  async create(dto: CreateVizitkaDto, userId: number) {
+  async create(dto: CreateVizitkaDto, ownerPublicId: string) {
     this.assertNameAllowed(dto.name);
     const exists = await this.prisma.vizitka.findUnique({ where: { name: dto.name } });
     if (exists) {
@@ -136,7 +136,7 @@ export class VizitkaService {
     }
     const v = await this.prisma.vizitka.create({
       data: {
-        userId,
+        ownerPublicId,
         name: dto.name,
         plan: dto.plan || "vizitka",
         headline: dto.headline,
@@ -167,8 +167,8 @@ export class VizitkaService {
     return { site: this.toPublicSiteJson(v) };
   }
 
-  async update(id: string, dto: UpdateVizitkaBodyDto, userId: number) {
-    const v = await this.prisma.vizitka.findFirst({ where: { id, userId } });
+  async update(id: string, dto: UpdateVizitkaBodyDto, ownerPublicId: string) {
+    const v = await this.prisma.vizitka.findFirst({ where: { id, ownerPublicId } });
     if (!v) {
       throw new NotFoundException("Vizitka topilmadi");
     }
@@ -182,5 +182,12 @@ export class VizitkaService {
       data: patch as any,
     });
     return { site: this.toPublicSiteJson(u) };
+  }
+
+  async remove(id: string, ownerPublicId: string) {
+    const r = await this.prisma.vizitka.deleteMany({ where: { id, ownerPublicId } });
+    if (r.count === 0) {
+      throw new NotFoundException("Vizitka topilmadi");
+    }
   }
 }

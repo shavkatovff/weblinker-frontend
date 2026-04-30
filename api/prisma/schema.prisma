@@ -85,8 +85,9 @@ model TgUser {
 /// Vizitka tarif — weblinker.uz/{name} (name noyob slug)
 model Vizitka {
   id     String  @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int    @map("user_id")
+  user   User   @relation(fields: [ownerPublicId], references: [publicId], onDelete: Cascade)
+  /// Foydalanuvchini `users.public_id` orqali bog‘lash (ichki `id` emas)
+  ownerPublicId String @map("owner_public_id")
 
   plan  String  @default("vizitka")
   /// Obuna muddati tugaguncha
@@ -126,7 +127,7 @@ model Vizitka {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  @@index([userId])
+  @@index([ownerPublicId])
   @@index([name])
   @@index([status])
   @@map("vizitkas")

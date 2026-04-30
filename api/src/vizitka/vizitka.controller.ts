@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -28,17 +29,17 @@ export class VizitkaController {
 
   @Get("mine")
   @UseGuards(JwtAccessGuard)
-  async mine(@Req() req: { user: { sub: number } }) {
-    return this.svc.listMine(req.user.sub);
+  async mine(@Req() req: { user: { sub: number; pid: string } }) {
+    return this.svc.listMine(req.user.pid);
   }
 
   @Post()
   @UseGuards(JwtAccessGuard)
   async create(
     @Body() body: CreateVizitkaDto,
-    @Req() req: { user: { sub: number } },
+    @Req() req: { user: { sub: number; pid: string } },
   ) {
-    return this.svc.create(body, req.user.sub);
+    return this.svc.create(body, req.user.pid);
   }
 
   @Patch(":id")
@@ -46,8 +47,15 @@ export class VizitkaController {
   async update(
     @Param("id") id: string,
     @Body() body: UpdateVizitkaBodyDto,
-    @Req() req: { user: { sub: number } },
+    @Req() req: { user: { sub: number; pid: string } },
   ) {
-    return this.svc.update(id, body, req.user.sub);
+    return this.svc.update(id, body, req.user.pid);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAccessGuard)
+  async remove(@Param("id") id: string, @Req() req: { user: { sub: number; pid: string } }) {
+    await this.svc.remove(id, req.user.pid);
+    return { ok: true };
   }
 }
