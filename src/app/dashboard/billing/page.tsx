@@ -32,7 +32,7 @@ export default function BillingPage() {
         <p className="mt-2 text-xs text-neutral-500">
           Lokalda:{" "}
           <code className="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">
-            http://localhost:3001/api/payments/click/prepare
+            http://localhost:8001/api/payments/click/prepare
           </code>{" "}
           (CLICK serveridan ko&apos;rinadigan tunnel kerak).
         </p>

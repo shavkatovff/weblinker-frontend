@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
-    "dev:web": "cross-env TZ=Asia/Tashkent PORT=3000 next dev",
-    "dev:api": "cross-env TZ=Asia/Tashkent npm run start:dev --prefix api",
+    "dev:web": "cross-env TZ=Asia/Tashkent PORT=8000 next dev",
+    "dev:api": "cross-env TZ=Asia/Tashkent API_PORT=8001 npm run start:dev --prefix api",
     "build": "next build",
     "build:all": "npm run build:api && next build",
     "build:api": "npm run build --prefix api",

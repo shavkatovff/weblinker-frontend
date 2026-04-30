@@ -1,6 +1,6 @@
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "./auth-storage";
 
-const base = () => process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const base = () => process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
 /** JWT `exp` (sekund, UNIX) — brauzerda */
 function parseJwtExp(token: string): number | null {

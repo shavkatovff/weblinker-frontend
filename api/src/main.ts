@@ -12,7 +12,7 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '256kb' }));
   const frontendOrigins = process.env.FRONTEND_ORIGIN
     ? process.env.FRONTEND_ORIGIN.split(',').map((o) => o.trim())
-    : ['http://localhost:3000'];
+    : ['http://localhost:8000'];
   app.enableCors({ origin: frontendOrigins, credentials: true });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -21,7 +21,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  const port = Number(process.env.API_PORT) || Number(process.env.PORT) || 3001;
+  const port = Number(process.env.API_PORT) || Number(process.env.PORT) || 8001;
   await app.listen(port);
 }
 bootstrap();
