@@ -3,8 +3,9 @@ import { PaymentService } from './payment.service';
 
 /**
  * CLICK merchant kabineti (Prepare / Complete).
- * Production: https://api.weblinker.uz/api/payments/click/prepare
- * va https://api.weblinker.uz/api/payments/click/complete
+ * Production (bir domen): https://weblinker.uz/api/payments/click/prepare
+ * va https://weblinker.uz/api/payments/click/complete
+ * (Nginx yoki Next rewrites orqali backend 8001 ga proxylanadi)
  */
 @Controller('api/payments/click')
 export class ClickCallbackController {

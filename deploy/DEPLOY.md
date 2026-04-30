@@ -69,10 +69,11 @@ Agar hozir qo‘lda bajarsangiz (`api` papkasida, `.env` loyiha ildizida):
 
 ```bash
 cd ~/weblinker-frontend/api
-dotenv -e ../.env -- npx prisma@5.22.0 migrate deploy
+npm ci
+./node_modules/.bin/dotenv -e ../.env -- npx prisma@5.22.0 migrate deploy
 ```
 
-(`npm ci` avval `api` ichida bajarilgan bo‘lsin — `dotenv-cli` mavjud bo‘ladi.)
+(`dotenv` — bu `dotenv-cli` paketi; tizim buyrug‘i emas, **`npm ci` dan keyin** `node_modules/.bin` dan ishlaydi.)
 
 ## 4. PM2 (yoki systemd)
 
@@ -111,19 +112,21 @@ Agar avval xato `ln` tufayli **buzilgan symlink** qolgan bo‘lsa: `sudo rm -f /
 
 Brauzerda `http://weblinker.uz` ochilishi kerak (sertifikatsiz, vaqtincha).
 
-## 6. Certbot — SSL sertifikat
+## 6. Certbot — SSL sertifikat (HTTPS)
 
-Bitta sertifikat bir nechta domen uchun:
+**weblinker.uz** uchun SSL olish va Nginx ga ulash **bitta buyruq** bilan (oldindan DNS va HTTP (80) ishlayotgan bo‘lsin):
 
 ```bash
 sudo certbot --nginx -d weblinker.uz -d www.weblinker.uz -d api.weblinker.uz
 ```
 
-Certbot Nginx konfigini yangilab, **HTTPS** va avtomatik qayta yangilanishni qo‘shadi.
+Certbot Nginx faylingizga `listen 443 ssl` va sertifikat yo‘llarini qo‘shadi; HTTP → HTTPS yo‘naltirishni so‘raydi (odatda **2** ni tanlang).
 
 ```bash
 sudo certbot renew --dry-run
 ```
+
+Batafsil (tekshiruvlar, muammolar, `.env` da `https://`): **[deploy/SSL.md](./SSL.md)**.
 
 ## 7. Telegram
 
@@ -131,7 +134,7 @@ sudo certbot renew --dry-run
 
   `https://api.weblinker.uz/telegram/webhook`
 
-- **CLICK** merchant kabinetida **Prepare/Complete** URL lar `https://api.weblinker.uz/api/payments/click/...` ko‘rinishida bo‘lsin (billing sahifasidagi qo‘llanma bilan mos).
+- **CLICK** merchant kabinetida **Prepare/Complete:** `https://weblinker.uz/api/payments/click/prepare` va `.../complete` (asosiy domen; backend Nest ga Nginx yoki Next orqali proxylanadi).
 
 ## 8. Firewall (ixtiyoriy)
 
