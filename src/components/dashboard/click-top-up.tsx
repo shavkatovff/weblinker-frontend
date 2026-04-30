@@ -99,23 +99,54 @@ export function ClickTopUpPanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-neutral-900">Balans to‘ldirish (CLICK)</h2>
-      <p className="mt-2 text-sm text-neutral-600">
-        Summani kiriting yoki tezkor tanlovni bosing. To‘lov{" "}
-        <strong className="font-medium text-neutral-800">my.click.uz</strong> da ochiladi — Uzcard yoki
-        Humoni <strong className="font-medium text-neutral-800">Click sahifasida</strong> tanlaysiz.
-        Balans to‘lov muvaffaqiyatidan keyin yangilanadi.
-      </p>
+    <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-sm">
+      {/* CLICK brand header */}
+      <div className="relative bg-gradient-to-br from-[#0065ff]/12 via-white to-sky-50/80 px-6 pb-5 pt-6">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#0065ff]/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md shadow-[#0065ff]/15 ring-1 ring-[#0065ff]/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/click_logo.svg"
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain"
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0065ff]/90">
+                To‘lov tizimi
+              </p>
+              <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-[#0065ff] sm:text-[1.65rem]">
+                CLICK
+              </h2>
+              <p className="mt-1 max-w-md text-sm text-neutral-600">
+                Balansni bank kartasi orqali to‘ldiring — xavfsiz va tezkor.
+              </p>
+            </div>
+          </div>
+          {balance != null && (
+            <div className="rounded-xl border border-[#0065ff]/15 bg-white/90 px-4 py-3 text-right shadow-sm backdrop-blur-sm sm:min-w-[160px]">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                Joriy balans
+              </p>
+              <p className="mt-1 text-xl font-semibold tabular-nums text-neutral-900">
+                {new Intl.NumberFormat("ru-RU").format(Math.round(balance))}{" "}
+                <span className="text-sm font-normal text-neutral-500">so‘m</span>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-      {balance != null && (
-        <p className="mt-4 text-sm text-neutral-700">
-          Joriy balans:{" "}
-          <span className="font-semibold tabular-nums">
-            {new Intl.NumberFormat("ru-RU").format(Math.round(balance))} so‘m
-          </span>
+      <div className="border-t border-neutral-100 p-6 pt-5">
+        <p className="text-sm text-neutral-600">
+          Summani kiriting yoki tezkor tanlovni bosing. Keyin{" "}
+          <strong className="font-medium text-neutral-800">my.click.uz</strong> sahifasida to‘lovni
+          yakunlaysiz (kartani shu yerda tanlaysiz).
         </p>
-      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {PRESET_SOMS.map((v) => (
@@ -167,6 +198,7 @@ export function ClickTopUpPanel() {
         <code className="rounded bg-neutral-100 px-1">/api/payments/click/prepare</code> va{" "}
         <code className="rounded bg-neutral-100 px-1">complete</code>).
       </p>
+      </div>
     </div>
   );
 }
