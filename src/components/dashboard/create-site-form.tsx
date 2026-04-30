@@ -352,6 +352,7 @@ function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
             "Logo va hero rasm",
             "Mobile birinchi dizayn",
           ]}
+          recommended
           onClick={() => onPick("vizitka")}
         />
         <TypeCard
@@ -364,8 +365,7 @@ function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
             "Galereya va sharhlar",
             "Aloqa formasi (Telegram bot)",
           ]}
-          recommended
-          onClick={() => onPick("landing")}
+          disabled
         />
       </div>
     </div>
@@ -378,6 +378,7 @@ function TypeCard({
   description,
   features,
   recommended,
+  disabled,
   onClick,
 }: {
   title: string;
@@ -385,37 +386,60 @@ function TypeCard({
   description: string;
   features: string[];
   recommended?: boolean;
-  onClick: () => void;
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group relative flex flex-col gap-5 rounded-2xl bg-white p-6 text-left transition-all",
-        recommended
-          ? "border-2 border-black"
-          : "border border-[color:var(--border)] hover:border-black",
-      )}
-    >
-      {recommended ? (
+  const cardClass = cn(
+    "group relative flex flex-col gap-5 rounded-2xl p-6 text-left transition-all",
+    disabled
+      ? "cursor-not-allowed border border-neutral-200 bg-neutral-50/90 text-neutral-600"
+      : recommended
+        ? "border-2 border-black bg-white"
+        : "border border-[color:var(--border)] bg-white hover:border-black",
+  );
+
+  const body = (
+    <>
+      {disabled ? (
+        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center rounded-full bg-neutral-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
+          Tez orada
+        </span>
+      ) : recommended ? (
         <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center rounded-full bg-black px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
           Tavsiya
         </span>
       ) : null}
 
       <div>
-        <h3 className="text-xl font-semibold tracking-tight text-black">
+        <h3
+          className={cn(
+            "text-xl font-semibold tracking-tight",
+            disabled ? "text-neutral-700" : "text-black",
+          )}
+        >
           {title}
         </h3>
         <p className="mt-1 text-sm text-neutral-500">{price}</p>
       </div>
 
-      <p className="text-sm leading-relaxed text-neutral-700">{description}</p>
+      <p
+        className={cn(
+          "text-sm leading-relaxed",
+          disabled ? "text-neutral-600" : "text-neutral-700",
+        )}
+      >
+        {description}
+      </p>
 
       <ul className="space-y-2">
         {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-black">
+          <li
+            key={f}
+            className={cn(
+              "flex items-start gap-2 text-sm",
+              disabled ? "text-neutral-600" : "text-black",
+            )}
+          >
             <svg
               viewBox="0 0 14 14"
               className="mt-[3px] h-4 w-4 flex-shrink-0"
@@ -433,18 +457,42 @@ function TypeCard({
         ))}
       </ul>
 
-      <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-semibold text-black">
-        Tanlash
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-          <path
-            d="M3 7H11M11 7L7 3M11 7L7 11"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
+      {disabled ? (
+        <span className="mt-auto pt-2 text-sm font-medium text-neutral-500">
+          Tez orada
+        </span>
+      ) : (
+        <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-semibold text-black">
+          Tanlash
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path
+              d="M3 7H11M11 7L7 3M11 7L7 11"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      )}
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <div
+        className={cardClass}
+        aria-disabled="true"
+        aria-label={`${title} — tez orada`}
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={cardClass}>
+      {body}
     </button>
   );
 }

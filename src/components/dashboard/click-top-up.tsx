@@ -192,12 +192,6 @@ export function ClickTopUpPanel() {
           {message}
         </p>
       ) : null}
-
-      <p className="mt-4 text-xs text-neutral-500">
-        Serverda Prepare/Complete URL lar kabinetga mos qo‘yilgan bo‘lishi kerak (
-        <code className="rounded bg-neutral-100 px-1">/api/payments/click/prepare</code> va{" "}
-        <code className="rounded bg-neutral-100 px-1">complete</code>).
-      </p>
       </div>
     </div>
   );
