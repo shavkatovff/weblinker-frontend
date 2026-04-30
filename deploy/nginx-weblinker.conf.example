@@ -35,7 +35,53 @@ server {
     listen [::]:80;
     server_name weblinker.uz www.weblinker.uz;
 
-    # CLICK Prepare/Complete — bir domen (Next rewrites bilan ham ishlaydi; bu proxyni o‘chirib qo‘yish mumkin)
+    # Nest API — asosiy domen orqali (api.weblinker.uz DNS shart emas). 443 blokda ham xuddi shu.
+    location /auth {
+        proxy_pass http://weblinker_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 25m;
+    }
+    location /vizitka {
+        proxy_pass http://weblinker_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 25m;
+    }
+    location /telegram {
+        proxy_pass http://weblinker_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 25m;
+    }
+    location /payments {
+        proxy_pass http://weblinker_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 25m;
+    }
+    location = /health {
+        proxy_pass http://weblinker_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # CLICK Prepare/Complete
     location /api/payments/click/ {
         proxy_pass http://weblinker_api;
         proxy_http_version 1.1;

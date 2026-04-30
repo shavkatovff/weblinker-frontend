@@ -1,5 +1,6 @@
 const path = require("path");
 
+/** Nest ichki manzil — bir domen rejimida rewrites shu yerga yo‘naltiradi */
 const internalApi =
   process.env.INTERNAL_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8001";
 
@@ -10,9 +11,13 @@ const nextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
-  /** CLICK merchant — bir domen: https://weblinker.uz/api/payments/click/... */
   async rewrites() {
     return [
+      { source: "/auth/:path*", destination: `${internalApi}/auth/:path*` },
+      { source: "/vizitka/:path*", destination: `${internalApi}/vizitka/:path*` },
+      { source: "/telegram/:path*", destination: `${internalApi}/telegram/:path*` },
+      { source: "/payments/:path*", destination: `${internalApi}/payments/:path*` },
+      { source: "/health", destination: `${internalApi}/health` },
       {
         source: "/api/payments/click/:path*",
         destination: `${internalApi}/api/payments/click/:path*`,

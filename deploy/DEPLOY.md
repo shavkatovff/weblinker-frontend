@@ -1,6 +1,6 @@
 # weblinker.uz — Linux serverga deploy va Let’s Encrypt (Certbot)
 
-Bu hujjat **weblinker.uz** (frontend) va **api.weblinker.uz** (Nest API) ni Nginx orqali **HTTPS** bilan ishga tushirish uchun umumiy tartib. Ubuntu/Debian uchun yozilgan.
+Bu hujjat **weblinker.uz** (Next + Nginx) va orqa fonda **Nest** (`127.0.0.1:8001`) ni deploy qilish tartibi. API bir xil domen orqali ham ishlaydi (`NEXT_PUBLIC_API_URL=https://weblinker.uz`), **api** subdomen ixtiyoriy.
 
 ## 1. DNS
 
@@ -10,7 +10,7 @@ Serveringiz **ochiq IP** sini oldingizdan:
 |--------|------|--------|
 | `weblinker.uz` | A | server IP |
 | `www.weblinker.uz` | A | server IP |
-| `api.weblinker.uz` | A | server IP |
+| `api.weblinker.uz` | A | ixtiyoriy (faqat subdomen orqali API ishlatmoqchi bo‘lsangiz) |
 
 TAR sozlanguncha **80** va **443** portlari tashqaridan ochiq bo‘lishi kerak.
 
@@ -38,7 +38,7 @@ Ildizdagi `.env` faylini yarating: `deploy/env.production.example` ni namuna sif
 
 - `DATABASE_URL` — ishlayotgan PostgreSQL
 - `JWT_*`, `TELEGRAM_BOT_TOKEN`, CLICK maydonlari
-- `NEXT_PUBLIC_API_URL=https://api.weblinker.uz`
+- `NEXT_PUBLIC_API_URL=https://weblinker.uz` (yoki `api` subdomen qo‘shgan bo‘lsangiz `https://api.weblinker.uz`)
 - `FRONTEND_ORIGIN=https://weblinker.uz,https://www.weblinker.uz`
 - `TELEGRAM_POLLING=false` (prod odatda webhook)
 
@@ -118,7 +118,9 @@ Brauzerda `http://weblinker.uz` ochilishi kerak (sertifikatsiz, vaqtincha).
 **weblinker.uz** uchun SSL olish va Nginx ga ulash **bitta buyruq** bilan (oldindan DNS va HTTP (80) ishlayotgan bo‘lsin):
 
 ```bash
-sudo certbot --nginx -d weblinker.uz -d www.weblinker.uz -d api.weblinker.uz
+sudo certbot --nginx -d weblinker.uz -d www.weblinker.uz
+# api subdomen uchun SSL kerak bo‘lsa (DNS bor bo‘lgach):
+# sudo certbot --nginx -d weblinker.uz -d www.weblinker.uz -d api.weblinker.uz --expand
 ```
 
 Certbot Nginx faylingizga `listen 443 ssl` va sertifikat yo‘llarini qo‘shadi; HTTP → HTTPS yo‘naltirishni so‘raydi (odatda **2** ni tanlang).
@@ -133,7 +135,7 @@ Batafsil (tekshiruvlar, muammolar, `.env` da `https://`): **[deploy/SSL.md](./SS
 
 - **Webhook** (polling o‘chiq bo‘lsa): BotFather / `@BotFather` orqali yoki `setWebhook` API:
 
-  `https://api.weblinker.uz/telegram/webhook`
+  `https://weblinker.uz/telegram/webhook` (yoki alohida `api` domeni bo‘lsa: `https://api.weblinker.uz/telegram/webhook`)
 
 - **CLICK** merchant kabinetida **Prepare/Complete:** `https://weblinker.uz/api/payments/click/prepare` va `.../complete` (asosiy domen; backend Nest ga Nginx yoki Next orqali proxylanadi).
 
@@ -164,5 +166,5 @@ Agar faqat `.env` dagi `NEXT_PUBLIC_*` o‘zgargan bo‘lsa — **`npm run build
 - **Bir serverda noto‘g‘ri sayt / boshqa front chiqyapti:** [deploy/NGINX-MULTI-SITE.md](NGINX-MULTI-SITE.md) — `server_name`, port ziddiyati, `default_server`.
 - **Prisma P1012 / Prisma 7:** `npx prisma` (versiyasiz) yoki global **Prisma 7** ishlatilmaydi. Faqat `npm run migrate:deploy` yoki `npx prisma@5.22.0 ...`.
 - **CORS xatosi:** `FRONTEND_ORIGIN` da aynan brauzerdagi manzil (https, `www` bo‘lsa qo‘shing).
-- **API 502:** PM2 da API ishlayotganini va `API_PORT=8001` ni tekshiring; Nginx `api.weblinker.uz` ni shu portga proxylayotganini tekshiring.
+- **API 502:** PM2 da `weblinker-api` ishlayaptimi; Nginx `weblinker.uz` uchun `/auth`, `/vizitka` va boshqalar **Nest** ga proxylanayaptimi (namuna: [nginx-weblinker.conf.example](./nginx-weblinker.conf.example)); `api` subdomen ishlatilsa, u ham shu portga tushadi.
 - **Sertifikat:** domenlar DNS da to‘g‘ri IP ga ko‘rsatayotganini va 80-port ochiq ekanini tekshiring.

@@ -1,5 +1,7 @@
 # Bir serverda bir nechta domen / loyiha (Nginx + weblinker)
 
+`ERR_NAME_NOT_RESOLVED` (api.weblinker.uz) — **A yozuv yo‘q** yoki barcha API ni **asosiy domen** orqali ishlatish: `NEXT_PUBLIC_API_URL=https://weblinker.uz` + Nginx da `/auth`, `/vizitka`, … proxy ([nginx-weblinker.conf.example](./nginx-weblinker.conf.example)). **443** (HTTPS) blokda ham shu `location` lar bo‘lsin.
+
 Agar `weblinker.uz` ochilganda **boshqa sayt** yoki **boshqa loyiha** fronti chiqsa, odatda sabab quyidagilardan biri.
 
 ## 1. `default_server` — noto‘g‘ri “standart” sayt
