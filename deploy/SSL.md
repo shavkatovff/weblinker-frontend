@@ -132,14 +132,15 @@ Muvaffaqiyatli bo‘lsa, sertifikat muddati tugashidan oldin avtomatik yangilana
 
 ## 5. `.env` va ilovalar
 
-HTTPS dan keyin server `.env` da quyidagilar **https** bo‘lishi kerak (keyin frontendni qayta **build** qiling — `NEXT_PUBLIC_*` build vaqtida yoziladi):
+HTTPS dan keyin server `.env` da `FRONTEND_ORIGIN` va `NEXT_PUBLIC_APP_URL` kabi domenlar **https** bo‘lsin. API brauzerda **bir xil domen** ishlatiladi; `INTERNAL_API_URL` Nest ichki manzili (RSC, rewrites). Keyin:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.weblinker.uz
+INTERNAL_API_URL=http://127.0.0.1:8001
 FRONTEND_ORIGIN=https://weblinker.uz,https://www.weblinker.uz
+NEXT_PUBLIC_APP_URL=https://weblinker.uz
 ```
 
-So‘ngra:
+So‘ngra (o‘zgarishlar kiritilgan bo‘lsa):
 
 ```bash
 cd /path/to/weblinker-frontend

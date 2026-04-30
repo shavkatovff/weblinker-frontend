@@ -1,7 +1,8 @@
 import { getAccessToken } from "./auth-storage";
+import { apiBaseUrl } from "./api-base";
 import type { SocialItem, SocialNetwork } from "./store/types";
 
-const base = () => process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+const base = () => apiBaseUrl();
 
 const NETWORK_TO_FIELD: Partial<Record<SocialNetwork, string>> = {
   instagram: "instagramLink",

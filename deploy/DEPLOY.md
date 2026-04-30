@@ -1,6 +1,6 @@
 # weblinker.uz — Linux serverga deploy va Let’s Encrypt (Certbot)
 
-Bu hujjat **weblinker.uz** (Next + Nginx) va orqa fonda **Nest** (`127.0.0.1:8001`) ni deploy qilish tartibi. API bir xil domen orqali ham ishlaydi (`NEXT_PUBLIC_API_URL=https://weblinker.uz`), **api** subdomen ixtiyoriy.
+Bu hujjat **weblinker.uz** (Next + Nginx) va orqa fonda **Nest** (`127.0.0.1:8001`) ni deploy qilish tartibi. API brauzerda **asosiy domen** orqali (`/auth`, `/vizitka`, …); **api** subdomen ixtiyoriy.
 
 ## 1. DNS
 
@@ -38,7 +38,8 @@ Ildizdagi `.env` faylini yarating: `deploy/env.production.example` ni namuna sif
 
 - `DATABASE_URL` — ishlayotgan PostgreSQL
 - `JWT_*`, `TELEGRAM_BOT_TOKEN`, CLICK maydonlari
-- `NEXT_PUBLIC_API_URL=https://weblinker.uz` (yoki `api` subdomen qo‘shgan bo‘lsangiz `https://api.weblinker.uz`)
+- `INTERNAL_API_URL=http://127.0.0.1:8001` (server/RSC va Next rewrites)
+- `NEXT_PUBLIC_APP_URL=https://weblinker.uz` (billing matnlari va hokazo)
 - `FRONTEND_ORIGIN=https://weblinker.uz,https://www.weblinker.uz`
 - `TELEGRAM_POLLING=false` (prod odatda webhook)
 

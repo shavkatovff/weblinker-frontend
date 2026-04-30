@@ -1,6 +1,7 @@
 import type { UnknownSite } from "@/lib/store/types";
+import { apiBaseUrl } from "./api-base";
 
-const base = () => process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+const base = () => apiBaseUrl();
 
 export async function fetchPublicVizitkaFromApi(
   slug: string,
