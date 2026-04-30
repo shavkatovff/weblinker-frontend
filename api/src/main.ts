@@ -17,7 +17,8 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      /** CLICK prepare/complete da klassifikatsiyasiz body — forbid ko‘p webhookni sindiradi */
+      forbidNonWhitelisted: false,
       transform: true,
     }),
   );

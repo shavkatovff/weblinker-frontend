@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -15,6 +16,15 @@ function bodyRecord(body: unknown): Record<string, unknown> {
   return {};
 }
 
+/** CLICK action — `Number(null)` va `Number('')` JS da 0 bo‘lmasligi kerak */
+function parseClickAction(data: Record<string, unknown>): number | undefined {
+  if (!('action' in data)) return undefined;
+  const v = data.action;
+  if (v === null || v === undefined || v === '') return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 @Injectable()
 export class PaymentService {
   constructor(
@@ -25,7 +35,9 @@ export class PaymentService {
   private secretKey(): string {
     const raw = this.config.get<string | undefined>('CLICK_SECRET_KEY');
     const s = typeof raw === 'string' ? raw.trim() : '';
-    if (!s) throw new Error('CLICK_SECRET_KEY is not set');
+    if (!s) {
+      throw new InternalServerErrorException('CLICK_SECRET_KEY is not set');
+    }
     return s;
   }
 
@@ -53,7 +65,7 @@ export class PaymentService {
     const merchantIdRaw = this.config.get<string>('CLICK_MERCHANT_ID')?.trim();
     const merchantUserId = this.config.get<string>('CLICK_MERCHANT_USER_ID')?.trim();
     if (!serviceIdRaw || !merchantIdRaw || !merchantUserId) {
-      throw new Error(
+      throw new InternalServerErrorException(
         'CLICK_SERVICE_ID, CLICK_MERCHANT_ID yoki CLICK_MERCHANT_USER_ID sozlanmagan',
       );
     }
@@ -91,7 +103,7 @@ export class PaymentService {
     const clickTransId = String(data.click_trans_id ?? '');
     const merchantTransId = String(data.merchant_trans_id ?? '');
     const amount = Number(data.amount);
-    const action = Number(data.action);
+    const action = parseClickAction(data);
 
     if (action !== 0) {
       return { error: -3, error_note: 'Action not found' };
@@ -142,7 +154,7 @@ export class PaymentService {
     const merchantTransId = String(data.merchant_trans_id ?? '');
     const merchantPrepareId = Number(data.merchant_prepare_id);
     const amount = Number(data.amount);
-    const action = Number(data.action);
+    const action = parseClickAction(data);
     const clickError = Number(data.error);
 
     if (action !== 1) {
