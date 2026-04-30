@@ -92,7 +92,7 @@ pm2 startup   # ko‘rsatma bo‘yicha systemd qo‘shing
 Tekshiruv (server ichida):
 
 ```bash
-curl -sI http://127.0.0.1:3000 | head -1
+curl -sI http://127.0.0.1:8000 | head -1
 curl -sI http://127.0.0.1:8001
 ```
 
@@ -161,6 +161,7 @@ Agar faqat `.env` dagi `NEXT_PUBLIC_*` o‘zgargan bo‘lsa — **`npm run build
 
 ## Muammolar
 
+- **Bir serverda noto‘g‘ri sayt / boshqa front chiqyapti:** [deploy/NGINX-MULTI-SITE.md](NGINX-MULTI-SITE.md) — `server_name`, port ziddiyati, `default_server`.
 - **Prisma P1012 / Prisma 7:** `npx prisma` (versiyasiz) yoki global **Prisma 7** ishlatilmaydi. Faqat `npm run migrate:deploy` yoki `npx prisma@5.22.0 ...`.
 - **CORS xatosi:** `FRONTEND_ORIGIN` da aynan brauzerdagi manzil (https, `www` bo‘lsa qo‘shing).
 - **API 502:** PM2 da API ishlayotganini va `API_PORT=8001` ni tekshiring; Nginx `api.weblinker.uz` ni shu portga proxylayotganini tekshiring.

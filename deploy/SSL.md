@@ -9,7 +9,7 @@ Bepul sertifikat: [Let’s Encrypt](https://letsencrypt.org/). Serverda **Certbo
 | DNS | `weblinker.uz`, `www.weblinker.uz`, `api.weblinker.uz` **A** yozuvlari server **ochiq IP** siga ishora qiladi. |
 | 80-port | Tashqaridan ochiq: `curl -I http://weblinker.uz` — javob kelishi kerak (200 yoki 301). |
 | Nginx | Loyihangizdagi site yoqilgan, `sudo nginx -t` xatosiz. |
-| Ilovalar | Next (`127.0.0.1:3000`) va API (`127.0.0.1:8001`) PM2 orqali ishlayapti — aks holda HTTPS ochilganda ham 502 bo‘lishi mumkin. |
+| Ilovalar | Next (`127.0.0.1:8000`) va API (`127.0.0.1:8001`) PM2 orqali ishlayapti — aks holda HTTPS ochilganda ham 502 bo‘lishi mumkin. |
 
 O‘rnatish (agar yo‘q bo‘lsa):
 
@@ -156,6 +156,8 @@ pm2 restart all
 | `NXDOMAIN` / `DNS problem` for `api.weblinker.uz` | [§ 1b](#1b-dns-api-alohida-yozuv-talab-qiladi) — `api` uchun **A** yozuv qo‘shing; `dig +short api.weblinker.uz` IP qaytarishini kuting. |
 | Certbot “connection refused” / challenge failed | 80-port firewallda ochiqmi; DNS hali eski IP dami — `dig weblinker.uz +short` tekshiring. |
 | `Too many certificates` | Bir haftada bir xil domen uchun juda ko‘p urinish — LetsEncrypt cheklovi; biroz kuting yoki [staging](https://letsencrypt.org/docs/staging-environment/) bilan sinab ko‘ring. |
-| HTTPS ochiladi, sahifa 502 | PM2 da `weblinker-web` / `weblinker-api` ishlayaptimi, portlar 3000 va 8001. |
+| HTTPS ochiladi, sahifa 502 | PM2 da `weblinker-web` / `weblinker-api` ishlayaptimi, portlar 8000 va 8001. |
 
 To‘liq deploy ketma-ketligi: [DEPLOY.md](./DEPLOY.md).
+
+**Bir serverda bir nechta domen / chalkash front:** [NGINX-MULTI-SITE.md](./NGINX-MULTI-SITE.md).

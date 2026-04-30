@@ -13,10 +13,11 @@
     "pm2": "pm2 start weblinker.config.cjs",
     "pm2:restart": "pm2 restart weblinker-web weblinker-api",
     "pm2:stop": "pm2 stop weblinker-web weblinker-api",
-    "start": "cross-env TZ=Asia/Tashkent next start",
+    "start": "cross-env TZ=Asia/Tashkent PORT=8000 next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "next": "^16.0.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.5",
