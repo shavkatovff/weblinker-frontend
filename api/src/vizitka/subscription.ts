@@ -1,9 +1,5 @@
-/** Vizitka obuna narxlari (so'm) — frontend `vizitka-packages.ts` bilan mos */
-export const VIZITKA_SUBSCRIPTION_PRICE_SOM: Record<3 | 6 | 12, number> = {
-  3: 37_000,
-  6: 57_000,
-  12: 97_000,
-};
+/** `expired_at` null bo‘lsa `toPublicSiteJson` fallback — DB default bilan mos */
+export const DEFAULT_VIZITKA_FREE_PUBLISH_DAYS = 10;
 
 export function computeSubscriptionExpiredAt(months: 3 | 6 | 12, anchor: Date): Date {
   const end = new Date(anchor);

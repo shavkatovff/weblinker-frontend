@@ -152,12 +152,14 @@ export function ClockIcon() {
 }
 
 export function mapsHref(content: VizitkaContent): string {
-  return (
-    content.mapsUrl ||
-    (content.address
-      ? `https://www.google.com/maps/search/${encodeURIComponent(content.address)}`
-      : "#")
-  );
+  const m = content.mapsUrl?.trim();
+  if (m) {
+    if (/^https?:\/\//i.test(m)) return m;
+    return `https://www.google.com/maps/search/${encodeURIComponent(m)}`;
+  }
+  return content.address
+    ? `https://www.google.com/maps/search/${encodeURIComponent(content.address)}`
+    : "#";
 }
 
 export function telHref(phone: string): string {

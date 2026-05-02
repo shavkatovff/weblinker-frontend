@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
+import { buildVizitkaPackages, formatSom, packagePriceByMonths } from "@/lib/vizitka-packages";
+import {
+  FALLBACK_PUBLIC_PRICING,
+  fetchVizitkaPricing,
+  type PublicPricing,
+} from "@/lib/vizitka-pricing";
 import { buildClickPayUrl } from "@/lib/click-checkout";
 import { trialDaysLeft } from "@/lib/store/store";
 import type { UnknownSite } from "@/lib/store/types";
-import {
-  VIZITKA_PACKAGES,
-  formatSom,
-  PACKAGE_PRICE_BY_MONTHS,
-} from "@/lib/vizitka-packages";
 import { createVizitkaSubscriptionPayment } from "@/lib/vizitka-client";
 
 type Props = {
@@ -19,6 +20,14 @@ type Props = {
 export function VizitkaSubscriptionPanel({ site }: Props) {
   const [loadingMonths, setLoadingMonths] = useState<3 | 6 | 12 | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
+
+  useEffect(() => {
+    void fetchVizitkaPricing().then(setPricing).catch(() => {});
+  }, []);
+
+  const packages = useMemo(() => buildVizitkaPackages(pricing), [pricing]);
+  const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
 
   if (site.type !== "vizitka") return null;
 
@@ -36,7 +45,7 @@ export function VizitkaSubscriptionPanel({ site }: Props) {
     setMessage(null);
     setLoadingMonths(months);
     try {
-      const amountSom = PACKAGE_PRICE_BY_MONTHS[months];
+      const amountSom = priceByMonths[months];
       const payment = await createVizitkaSubscriptionPayment({
         vizitkaId: site.id,
         subscriptionMonths: months,
@@ -76,7 +85,7 @@ export function VizitkaSubscriptionPanel({ site }: Props) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        {VIZITKA_PACKAGES.map((p) => (
+        {packages.map((p) => (
           <button
             key={p.id}
             type="button"

@@ -58,7 +58,7 @@ export function VizitkaCard({ content, theme }: Props) {
               </a>
             </li>
           ) : null}
-          {content.address ? (
+          {content.address || content.mapsUrl?.trim() ? (
             <li>
               <a
                 href={mapsHref(content)}
@@ -69,7 +69,7 @@ export function VizitkaCard({ content, theme }: Props) {
                 <span style={{ color: theme.primary }}>
                   <PinIcon />
                 </span>
-                <span>{content.address}</span>
+                <span>{content.address || "Xarita / lokatsiya"}</span>
               </a>
             </li>
           ) : null}
@@ -85,8 +85,13 @@ export function VizitkaCard({ content, theme }: Props) {
           ) : null}
         </ul>
 
-        {content.address ? (
-          <MapEmbed address={content.address} height={130} className="mt-4" />
+        {content.address?.trim() || content.mapsUrl?.trim() ? (
+          <MapEmbed
+            address={content.address ?? ""}
+            mapsUrl={content.mapsUrl}
+            height={130}
+            className="mt-4"
+          />
         ) : null}
 
         {socials.length ? (

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Weblinker — 15 daqiqada biznes saytingizni yarating",
     description:
-      "Dasturchisiz va dizaynersiz o'z biznes saytingizni yarating. 1 hafta bepul sinov.",
+      "Dasturchisiz va dizaynersiz o'z biznes saytingizni yarating. 10 kun bepul sinov.",
     type: "website",
     locale: "uz_UZ",
   },

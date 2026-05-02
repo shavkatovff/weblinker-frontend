@@ -25,6 +25,11 @@ export function VizitkaLinktree({ content, theme }: Props) {
       label: "Yo'l ko'rsatish",
       href: mapsHref(content),
     },
+    !content.address &&
+      content.mapsUrl?.trim() && {
+        label: "Xarita",
+        href: mapsHref(content),
+      },
   ].filter(Boolean) as Array<{ label: string; href: string; primary?: boolean }>;
 
   return (
@@ -49,8 +54,14 @@ export function VizitkaLinktree({ content, theme }: Props) {
         </p>
       ) : null}
 
-      {content.address ? (
-        <MapEmbed address={content.address} height={140} className="mt-6 w-full" rounded="rounded-2xl" />
+      {content.address?.trim() || content.mapsUrl?.trim() ? (
+        <MapEmbed
+          address={content.address ?? ""}
+          mapsUrl={content.mapsUrl}
+          height={140}
+          className="mt-6 w-full"
+          rounded="rounded-2xl"
+        />
       ) : null}
 
       <div className="mt-8 flex w-full flex-col gap-2.5">

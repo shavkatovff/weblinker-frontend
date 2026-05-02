@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/vizitkas", label: "Vizitkalar", icon: IconSites, exact: false },
   { href: "/admin/users", label: "Foydalanuvchilar", icon: IconUsers, exact: false },
   { href: "/admin/payments", label: "To‘lovlar", icon: IconPayments, exact: false },
+  { href: "/admin/settings", label: "Sozlamalar", icon: IconSettings, exact: false },
 ] as const;
 
 function IconOverview({ className }: { className?: string }) {
@@ -72,6 +73,20 @@ function IconPayments({ className }: { className?: string }) {
         d="M12.5 11.3h.01"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconSettings({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <circle cx="9" cy="9" r="2.2" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M9 1.5v2.2M9 14.3v2.2M16.5 9h-2.2M3.7 9H1.5M14.1 3.9l-1.55 1.55M5.45 12.55L3.9 14.1M14.1 14.1l-1.55-1.55M5.45 5.45L3.9 3.9"
+        stroke="currentColor"
+        strokeWidth="1.4"
         strokeLinecap="round"
       />
     </svg>

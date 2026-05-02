@@ -1,5 +1,5 @@
 import { Topbar } from "@/components/dashboard/topbar";
-import { Button } from "@/components/ui/button";
+import { TopbarWalletActions } from "@/components/dashboard/topbar-wallet";
 import { SitesList } from "@/components/dashboard/sites-list";
 
 export default function SitesPage() {
@@ -8,11 +8,7 @@ export default function SitesPage() {
       <Topbar
         breadcrumb="Saytlarim"
         title="Saytlarim"
-        actions={
-          <Button href="/dashboard/sites/new" size="sm">
-            Yangi sayt
-          </Button>
-        }
+        actions={<TopbarWalletActions />}
       />
       <SitesList />
     </>

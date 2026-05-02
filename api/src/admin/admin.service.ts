@@ -6,14 +6,17 @@ import {
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { VizitkaService } from "../vizitka/vizitka.service";
+import { AppSettingsService } from "../settings/app-settings.service";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
+import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vizitkaSvc: VizitkaService,
+    private readonly appSettings: AppSettingsService,
   ) {}
 
   async stats() {
@@ -125,6 +128,14 @@ export class AdminService {
       } else {
         patch[k] = val;
       }
+    }
+
+    const mergedExpired =
+      patch.expiredAt !== undefined
+        ? (patch.expiredAt as Date | null)
+        : v.expiredAt;
+    if (mergedExpired != null && mergedExpired.getTime() > Date.now()) {
+      patch.expiryNoticeSentAt = null;
     }
 
     const u = await this.prisma.vizitka.update({
@@ -247,6 +258,28 @@ export class AdminService {
           publicId: p.user.publicId,
         },
       })),
+    };
+  }
+
+  async getAppSettings() {
+    const r = await this.appSettings.get();
+    return {
+      freePublishDays: r.freePublishDays,
+      paket3Som: r.paket3Som,
+      paket6Som: r.paket6Som,
+      paket12Som: r.paket12Som,
+      updatedAt: r.updatedAt.toISOString(),
+    };
+  }
+
+  async updateAppSettings(dto: UpdateAppSettingsDto) {
+    const r = await this.appSettings.update(dto);
+    return {
+      freePublishDays: r.freePublishDays,
+      paket3Som: r.paket3Som,
+      paket6Som: r.paket6Som,
+      paket12Som: r.paket12Som,
+      updatedAt: r.updatedAt.toISOString(),
     };
   }
 }

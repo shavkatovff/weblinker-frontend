@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import {
@@ -11,8 +11,26 @@ import {
   slugExists,
   suggestSlug,
 } from "@/lib/store/store";
-import { buildVizitkaCreatePayload, postVizitka } from "@/lib/vizitka-client";
-import { formatSom, PACKAGE_PRICE_BY_MONTHS, VIZITKA_PACKAGES } from "@/lib/vizitka-packages";
+import {
+  buildVizitkaCreatePayload,
+  postVizitka,
+} from "@/lib/vizitka-client";
+import { api, ApiError } from "@/lib/api";
+import {
+  buildClickPayUrl,
+  type CreateClickPaymentRes,
+} from "@/lib/click-checkout";
+import {
+  buildVizitkaFreePackage,
+  buildVizitkaPackages,
+  formatSom,
+  packagePriceByMonths,
+} from "@/lib/vizitka-packages";
+import {
+  FALLBACK_PUBLIC_PRICING,
+  fetchVizitkaPricing,
+  type PublicPricing,
+} from "@/lib/vizitka-pricing";
 import {
   COLOR_THEMES,
   ColorThemeId,
@@ -29,6 +47,7 @@ import {
 } from "@/lib/store/types";
 import { defaultVizitkaContent, deriveInitials } from "@/lib/store/defaults";
 import { VizitkaTemplate } from "@/components/sites/vizitka-template";
+import { MapEmbed } from "@/components/sites/map-embed";
 import { ImageUpload } from "@/components/editor/image-upload";
 import { Field, TextAreaInput, TextInput } from "@/components/editor/fields";
 import { HoursEditor } from "@/components/editor/hours-editor";
@@ -60,6 +79,9 @@ const steps = [
   { n: 3, label: "Ma'lumotlar" },
 ];
 
+/** CLICK dan qaytganda tanlangan oy paketi */
+const SESSION_SUB_MONTHS = "weblinker.newSite.subscriptionMonths";
+
 const COMMON_CATEGORIES = [
   "Chayxana",
   "Restoran",
@@ -82,6 +104,7 @@ const COMMON_CATEGORIES = [
 
 export function CreateSiteForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [siteType, setSiteType] = useState<SiteType | null>(null);
   const [step, setStep] = useState<Step>(1);
   const [ready, setReady] = useState(false);
@@ -108,12 +131,33 @@ export function CreateSiteForm() {
   const [heroImage, setHeroImage] = useState<SiteImage | undefined>();
 
   const [submitting, setSubmitting] = useState(false);
-  /** Vizitka uchun tanlangan obuna (oy) — paket bosqichidan keyin */
-  const [vizitkaMonths, setVizitkaMonths] = useState<3 | 6 | 12 | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const [tierPayLoading, setTierPayLoading] = useState<3 | 6 | 12 | null>(null);
+  /** Vizitka: bepul kunlar va paket narxlari API dan */
+  const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
+  const [vizitkaTier, setVizitkaTier] = useState<"free" | 3 | 6 | 12 | null>(null);
+
+  const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
 
   useEffect(() => {
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    void fetchVizitkaPricing().then(setPricing).catch(() => {});
+  }, []);
+
+  /** CLICK dan qaytgan — sessiyadan oy paketini tiklash */
+  useEffect(() => {
+    if (searchParams.get("click") !== "1") return;
+    const m = sessionStorage.getItem(SESSION_SUB_MONTHS);
+    if (m === "3" || m === "6" || m === "12") {
+      setVizitkaTier(Number(m) as 3 | 6 | 12);
+      setStep(1);
+    }
+    sessionStorage.removeItem(SESSION_SUB_MONTHS);
+    router.replace("/dashboard/sites/new", { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (slugTouched || !ready) return;
@@ -129,9 +173,55 @@ export function CreateSiteForm() {
   const canNextFromStep1 =
     businessName.trim().length >= 2 && normalizedSlug.length >= 3 && !slugError;
 
+  const handleVizitkaTierSelect = useCallback(
+    async (tier: "free" | 3 | 6 | 12) => {
+      setFinishError(null);
+      if (tier === "free") {
+        sessionStorage.removeItem(SESSION_SUB_MONTHS);
+        setVizitkaTier("free");
+        setStep(1);
+        return;
+      }
+      const price = priceByMonths[tier];
+      setTierPayLoading(tier);
+      try {
+        const me = await api<{ user: { balance: number } }>("/auth/me");
+        const bal = Math.floor(me.user.balance);
+        const need = Math.max(0, price - bal);
+        if (need === 0) {
+          setVizitkaTier(tier);
+          setStep(1);
+          return;
+        }
+        sessionStorage.setItem(SESSION_SUB_MONTHS, String(tier));
+        const payment = await api<CreateClickPaymentRes>("/payments/click", {
+          method: "POST",
+          body: JSON.stringify({ amount: need }),
+        });
+        const returnUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/dashboard/sites/new?click=1`
+            : "/dashboard/sites/new?click=1";
+        window.location.assign(buildClickPayUrl(payment, returnUrl));
+      } catch (e) {
+        const msg =
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "To‘lov boshlanmadi";
+        setFinishError(msg);
+      } finally {
+        setTierPayLoading(null);
+      }
+    },
+    [priceByMonths],
+  );
+
   const handleFinish = async () => {
     if (!canNextFromStep1 || !siteType) return;
     setSubmitting(true);
+    setFinishError(null);
     const templateId: TemplateId =
       siteType === "vizitka" ? vizitkaTemplateId : landingTemplateId;
     try {
@@ -151,7 +241,10 @@ export function CreateSiteForm() {
           colorTheme,
           pattern,
           heroDataUrl: heroImage?.dataUrl,
-          subscriptionMonths: vizitkaMonths ?? undefined,
+          subscriptionMonths:
+            vizitkaTier !== null && vizitkaTier !== "free"
+              ? vizitkaTier
+              : undefined,
         });
         try {
           const res = await postVizitka(payload);
@@ -161,9 +254,12 @@ export function CreateSiteForm() {
             router.push(`/dashboard/sites/${sid}`);
             return;
           }
+          setFinishError("Server javob bermadi. Qayta urinib ko‘ring.");
         } catch (e) {
-          console.error("Vizitka saqlanmadi (lokal nusxa yaratamiz):", e);
+          setFinishError(e instanceof Error ? e.message : "Saqlashda xato");
+          return;
         }
+        return;
       }
       const site = createSite({
         type: siteType,
@@ -233,23 +329,28 @@ export function CreateSiteForm() {
   if (!siteType) {
     return (
       <div className="mx-auto max-w-3xl px-5 py-10 lg:px-10">
-        <TypePicker onPick={setSiteType} />
+        <TypePicker pricing={pricing} onPick={setSiteType} />
       </div>
     );
   }
 
-  if (siteType === "vizitka" && vizitkaMonths === null) {
+  if (siteType === "vizitka" && vizitkaTier === null) {
     return (
       <div className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
+        {finishError ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            {finishError}
+          </div>
+        ) : null}
         <VizitkaPackagePicker
+          pricing={pricing}
+          payingTier={tierPayLoading}
           onBack={() => {
+            setFinishError(null);
             setSiteType(null);
             setStep(1);
           }}
-          onSelect={(m) => {
-            setVizitkaMonths(m);
-            setStep(1);
-          }}
+          onSelectTier={handleVizitkaTierSelect}
         />
       </div>
     );
@@ -265,10 +366,17 @@ export function CreateSiteForm() {
               {siteType === "vizitka" ? "Vizitka" : "Landing"}
             </span>
           </p>
-          {siteType === "vizitka" && vizitkaMonths != null ? (
-            <p className="mt-0.5 text-[11px] text-neutral-600">
-              {vizitkaMonths} oy — {formatSom(PACKAGE_PRICE_BY_MONTHS[vizitkaMonths])}
-            </p>
+          {siteType === "vizitka" && vizitkaTier != null ? (
+            vizitkaTier === "free" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                Bepul — {pricing.freePublishDays} kunlik sinov
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                {vizitkaTier} oy —{" "}
+                {formatSom(priceByMonths[vizitkaTier])}
+              </p>
+            )
           ) : null}
         </div>
         <button
@@ -276,7 +384,7 @@ export function CreateSiteForm() {
           onClick={() => {
             setStep(1);
             if (siteType === "vizitka") {
-              setVizitkaMonths(null);
+              setVizitkaTier(null);
               return;
             }
             setSiteType(null);
@@ -352,6 +460,7 @@ export function CreateSiteForm() {
             heroImage={heroImage}
             setHeroImage={setHeroImage}
             submitting={submitting}
+            finishError={finishError}
             onBack={() => setStep(2)}
             onFinish={handleFinish}
           />
@@ -363,11 +472,21 @@ export function CreateSiteForm() {
 
 function VizitkaPackagePicker({
   onBack,
-  onSelect,
+  onSelectTier,
+  pricing,
+  payingTier,
 }: {
   onBack: () => void;
-  onSelect: (months: 3 | 6 | 12) => void;
+  onSelectTier: (tier: "free" | 3 | 6 | 12) => void | Promise<void>;
+  pricing: PublicPricing;
+  payingTier: 3 | 6 | 12 | null;
 }) {
+  const freePackage = useMemo(
+    () => buildVizitkaFreePackage(pricing.freePublishDays),
+    [pricing.freePublishDays],
+  );
+  const packages = useMemo(() => buildVizitkaPackages(pricing), [pricing]);
+  const busy = payingTier !== null;
   return (
     <div>
       <div className="mb-8 text-center">
@@ -375,19 +494,52 @@ function VizitkaPackagePicker({
           Obuna muddatini tanlang
         </h2>
         <p className="mt-2 text-sm text-neutral-600">
-          Keyin ham tahrirchi orqali muddatni uzaytirasiz. Hozir tanlov —{" "}
-          <strong className="font-medium text-neutral-800">tugash sanasiga</strong> qo‘shiladi.
+          Avvalo bepul{" "}
+          <strong className="font-medium text-neutral-800">
+            {pricing.freePublishDays} kun
+          </strong>{" "}
+          sinov yoki to&apos;lovli paket. Paket tanlansa yetishmaydigan summa{" "}
+          <strong className="font-medium text-neutral-800">CLICK</strong> orqali balansga
+          o&apos;tadi; keyin &quot;Saytni yaratish&quot; bosilganda balansdan paket narxi
+          yechiladi va muddat qo&apos;shiladi.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {VIZITKA_PACKAGES.map((p) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSelectTier("free")}
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-dashed border-teal-400/80 bg-gradient-to-b from-teal-50/80 to-white p-6 text-left transition-all hover:border-teal-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            Bepul
+          </span>
+          <div className="mt-1">
+            <p className="text-lg font-semibold text-black">
+              {freePackage.title}
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-teal-800">
+              {freePackage.priceLabel}
+            </p>
+            <p className="mt-1 text-xs text-neutral-600">{freePackage.subtitle}</p>
+            <p className="mt-2 text-[11px] font-medium text-teal-700">
+              {pricing.freePublishDays} kun sinov
+            </p>
+          </div>
+          <span className="mt-auto pt-2 text-sm font-semibold text-teal-900">
+            Tanlash →
+          </span>
+        </button>
+
+        {packages.map((p) => (
           <button
             key={p.id}
             type="button"
-            onClick={() => onSelect(p.months)}
+            disabled={busy}
+            onClick={() => void onSelectTier(p.months)}
             className={cn(
-              "group relative flex flex-col gap-3 rounded-2xl border p-6 text-left transition-all",
+              "group relative flex flex-col gap-3 rounded-2xl border p-6 text-left transition-all disabled:pointer-events-none disabled:opacity-50",
               p.recommended
                 ? "border-2 border-black bg-white shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)]"
                 : "border border-[color:var(--border)] bg-white hover:border-black",
@@ -409,7 +561,7 @@ function VizitkaPackagePicker({
               ) : null}
             </div>
             <span className="mt-auto pt-2 text-sm font-semibold text-black">
-              Tanlash →
+              {payingTier === p.months ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
             </span>
           </button>
         ))}
@@ -428,7 +580,14 @@ function VizitkaPackagePicker({
   );
 }
 
-function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
+function TypePicker({
+  onPick,
+  pricing,
+}: {
+  onPick: (type: SiteType) => void;
+  pricing: PublicPricing;
+}) {
+  const startPrice = formatSom(pricing.pricesSom["3"]);
   return (
     <div>
       <div className="mb-8 text-center">
@@ -443,7 +602,7 @@ function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TypeCard
           title="Vizitka"
-          price="37 000 so'm dan · 3 paket"
+          price={`Bepul ${pricing.freePublishDays} kun yoki ${startPrice} dan · paketlar`}
           description="Bir ekranli biznes kartasi — kontaktlar, ijtimoiy tarmoq linklari, manzil. Obuna muddatini tanlaysiz."
           features={[
             "1 ekranli sayt",
@@ -677,7 +836,11 @@ function StepOne({
         <Field label="Kategoriya">
           <CategorySelect value={category} onChange={setCategory} />
         </Field>
-        <Field label="Manzil" error={slugError}>
+        <Field
+          label="Veb-manzil"
+          error={slugError}
+          hint="Sayt havolasi: weblinker.uz/… (bu jismoniy manzil emas)"
+        >
           <TextInput
             prefix="weblinker.uz/"
             value={slug}
@@ -1021,6 +1184,7 @@ function StepThree({
   heroImage,
   setHeroImage,
   submitting,
+  finishError,
   onBack,
   onFinish,
 }: {
@@ -1046,6 +1210,7 @@ function StepThree({
   heroImage: SiteImage | undefined;
   setHeroImage: (v: SiteImage | undefined) => void;
   submitting: boolean;
+  finishError?: string | null;
   onBack: () => void;
   onFinish: () => void;
 }) {
@@ -1091,7 +1256,10 @@ function StepThree({
             />
           </Field>
 
-          <Field label="Manzil">
+          <Field
+            label="Manzil"
+            hint="Faktik joy — ko'cha, shahar (xarita havolasi keyingi maydonda)"
+          >
             <TextInput
               value={address}
               onChange={setAddress}
@@ -1122,7 +1290,7 @@ function StepThree({
 
           <Field
             label="Xarita havolasi (ixtiyoriy)"
-            hint="Google Maps yoki Yandex link. Bo'sh qoldirsangiz manzil bo'yicha avto-link yaratiladi."
+            hint="Google yoki Yandex — aniq nuqta; bo'sh bo'lsa yuqoridagi manzil bo'yicha xarita"
           >
             <TextInput
               value={mapsUrl}
@@ -1130,6 +1298,21 @@ function StepThree({
               placeholder="https://maps.google.com/..."
             />
           </Field>
+
+          {(address.trim() || mapsUrl.trim()) && siteType === "vizitka" ? (
+            <div className="space-y-2 rounded-xl border border-[color:var(--border)] bg-neutral-50/80 p-4">
+              <p className="text-[11px] font-medium text-neutral-600">
+                Xarita (bosilsa — havolada ochiladi)
+              </p>
+              <MapEmbed
+                address={address}
+                mapsUrl={mapsUrl}
+                height={160}
+                className="w-full"
+                rounded="rounded-xl"
+              />
+            </div>
+          ) : null}
 
           <Field
             label="Ijtimoiy tarmoqlar"
@@ -1139,13 +1322,20 @@ function StepThree({
           </Field>
         </div>
 
-        <div className="mt-8 flex justify-between">
-          <Button size="lg" variant="secondary" onClick={onBack}>
-            ← Orqaga
-          </Button>
-          <Button size="lg" onClick={onFinish} disabled={submitting}>
-            {submitting ? "Yaratilmoqda..." : "Saytni yaratish"}
-          </Button>
+        <div className="mt-8 space-y-3">
+          {finishError ? (
+            <p className="text-sm text-red-700" role="alert">
+              {finishError}
+            </p>
+          ) : null}
+          <div className="flex justify-between gap-3">
+            <Button size="lg" variant="secondary" onClick={onBack}>
+              ← Orqaga
+            </Button>
+            <Button size="lg" onClick={onFinish} disabled={submitting}>
+              {submitting ? "Yaratilmoqda..." : "Saytni yaratish"}
+            </Button>
+          </div>
         </div>
       </div>
 

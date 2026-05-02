@@ -1,6 +1,8 @@
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { apiBaseUrl } from "@/lib/api-base";
+import { FALLBACK_PUBLIC_PRICING, type PublicPricing } from "@/lib/vizitka-pricing";
 
 type Plan = {
   id: string;
@@ -14,42 +16,54 @@ type Plan = {
   highlighted: boolean;
 };
 
-const plans: Plan[] = [
-  {
-    id: "vizitka",
-    name: "Vizitka",
-    price: 37_000,
-    priceSuffix: "dan",
-    priceNote: "3 oy, 6 oy va 1 yil paketlari",
-    tagline: "Bir ekranli biznes kartasi",
-    features: [
-      "1 ekranli sayt",
-      "Telefon, manzil, ijtimoiy tarmoq linklari",
-      "Mobil telefonda mukammal",
-    ],
-    highlighted: false,
-  },
-  {
-    id: "landing",
-    name: "Landing",
-    price: 87_000,
-    priceSuffix: "/ oy",
-    tagline: "Bir nechta bo'limli sayt",
-    features: [
-      "Vizitka tarifidagi barchasi",
-      "Xizmatlar va narxlar jadvali",
-      "Aloqa formasi (Telegram bot)",
-      "Galereya va sharhlar",
-    ],
-    highlighted: true,
-  },
-];
+async function loadPricing(): Promise<PublicPricing> {
+  try {
+    const r = await fetch(`${apiBaseUrl()}/vizitka/pricing`, { next: { revalidate: 60 } });
+    if (!r.ok) throw new Error("pricing");
+    return r.json() as Promise<PublicPricing>;
+  } catch {
+    return FALLBACK_PUBLIC_PRICING;
+  }
+}
 
 function formatPrice(value: number) {
   return value.toLocaleString("ru-RU").replace(/\u00a0/g, " ");
 }
 
-export function Pricing() {
+export async function Pricing() {
+  const pricing = await loadPricing();
+  const vizitkaFrom = pricing.pricesSom["3"];
+  const plans: Plan[] = [
+    {
+      id: "vizitka",
+      name: "Vizitka",
+      price: vizitkaFrom,
+      priceSuffix: "dan",
+      priceNote: "3 oy, 6 oy va 1 yil paketlari",
+      tagline: "Bir ekranli biznes kartasi",
+      features: [
+        "1 ekranli sayt",
+        "Telefon, manzil, ijtimoiy tarmoq linklari",
+        "Mobil telefonda mukammal",
+      ],
+      highlighted: false,
+    },
+    {
+      id: "landing",
+      name: "Landing",
+      price: 87_000,
+      priceSuffix: "/ oy",
+      tagline: "Bir nechta bo'limli sayt",
+      features: [
+        "Vizitka tarifidagi barchasi",
+        "Xizmatlar va narxlar jadvali",
+        "Aloqa formasi (Telegram bot)",
+        "Galereya va sharhlar",
+      ],
+      highlighted: true,
+    },
+  ];
+
   return (
     <section
       id="pricing"
@@ -61,7 +75,7 @@ export function Pricing() {
             Oddiy tariflar
           </h2>
           <p className="mt-4 text-base text-neutral-600">
-            1 hafta bepul. Karta ma&apos;lumotisiz. Istalgan vaqtda bekor qiling.
+            {pricing.freePublishDays} kun bepul. Karta ma&apos;lumotisiz. Istalgan vaqtda bekor qiling.
           </p>
         </div>
 

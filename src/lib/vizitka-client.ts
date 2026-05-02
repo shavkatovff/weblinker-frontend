@@ -63,7 +63,15 @@ export async function postVizitka(
     body: JSON.stringify(body),
   });
   if (!r.ok) {
-    const m = await r.text();
+    let m = await r.text();
+    try {
+      const j = JSON.parse(m) as { message?: string | string[] };
+      if (j.message) {
+        m = Array.isArray(j.message) ? j.message.join(", ") : j.message;
+      }
+    } catch {
+      /* raw */
+    }
     throw new Error(m || `HTTP ${r.status}`);
   }
   return (await r.json()) as { site: unknown };

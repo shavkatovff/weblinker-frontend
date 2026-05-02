@@ -31,6 +31,13 @@ export function VizitkaSocialWall({ content, theme }: Props) {
       href: mapsHref(content),
       icon: <PinIcon />,
     });
+  } else if (content.mapsUrl?.trim()) {
+    tiles.push({
+      label: "Manzil",
+      value: "Xarita",
+      href: mapsHref(content),
+      icon: <PinIcon />,
+    });
   }
 
   const socialTiles = content.social
@@ -66,8 +73,14 @@ export function VizitkaSocialWall({ content, theme }: Props) {
         </p>
       ) : null}
 
-      {content.address ? (
-        <MapEmbed address={content.address} height={120} className="relative mt-4" rounded="rounded-2xl" />
+      {content.address?.trim() || content.mapsUrl?.trim() ? (
+        <MapEmbed
+          address={content.address ?? ""}
+          mapsUrl={content.mapsUrl}
+          height={120}
+          className="relative mt-4"
+          rounded="rounded-2xl"
+        />
       ) : null}
 
       <div className="mt-3 grid grid-cols-2 gap-2.5">

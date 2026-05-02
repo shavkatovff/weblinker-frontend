@@ -8,10 +8,10 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppSettingsService } from '../settings/app-settings.service';
 import {
   extendSubscriptionExpiry,
   parseVizitkaSubscriptionMerchantId,
-  VIZITKA_SUBSCRIPTION_PRICE_SOM,
 } from '../vizitka/subscription';
 import { checkCompleteSign, checkPrepareSign } from './click-sign';
 
@@ -58,6 +58,7 @@ export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly appSettings: AppSettingsService,
   ) {}
 
   private secretKey(): string {
@@ -117,7 +118,7 @@ export class PaymentService {
     }
 
     if (hasViz && hasMo) {
-      const expected = VIZITKA_SUBSCRIPTION_PRICE_SOM[opts.subscriptionMonths!];
+      const expected = await this.appSettings.priceSomForMonths(opts.subscriptionMonths!);
       if (amount !== expected) {
         throw new BadRequestException('Summa tanlangan paket narxi bilan mos emas');
       }
@@ -314,7 +315,8 @@ export class PaymentService {
       if (subMeta.userId !== payment.userId) {
         return { error: -6, error_note: 'Transaction does not exist' };
       }
-      if (payment.amount !== VIZITKA_SUBSCRIPTION_PRICE_SOM[subMeta.months]) {
+      const expectedSom = await this.appSettings.priceSomForMonths(subMeta.months);
+      if (payment.amount !== expectedSom) {
         return { error: -2, error_note: 'Incorrect parameter amount' };
       }
       const owner = await this.prisma.user.findUnique({
@@ -360,7 +362,11 @@ export class PaymentService {
           const nextEnd = extendSubscriptionExpiry(viz.expiredAt, meta.months, now);
           await tx.vizitka.update({
             where: { id: viz.id },
-            data: { expiredAt: nextEnd },
+            data: {
+              expiredAt: nextEnd,
+              status: "ACTIVE",
+              expiryNoticeSentAt: null,
+            },
           });
 
           return tx.payment.update({

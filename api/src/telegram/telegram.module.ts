@@ -8,5 +8,6 @@ import { TelegramService } from "./telegram.service";
   imports: [PrismaModule],
   controllers: [TelegramController],
   providers: [TelegramService, TelegramPollingService],
+  exports: [TelegramService],
 })
 export class TelegramModule {}

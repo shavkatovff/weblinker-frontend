@@ -7,12 +7,17 @@ import {
   ParseIntPipe,
   Patch,
   Query,
+  UseGuards,
 } from "@nestjs/common";
+import { JwtAccessGuard } from "../auth/jwt-access.guard";
+import { AdminGuard } from "../auth/admin.guard";
 import { AdminService } from "./admin.service";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
+import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
 
 @Controller("api/admin")
+@UseGuards(JwtAccessGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
@@ -73,5 +78,15 @@ export class AdminController {
       Number.isFinite(t) ? t : 100,
       Number.isFinite(s) ? s : 0,
     );
+  }
+
+  @Get("settings")
+  async getSettings() {
+    return this.admin.getAppSettings();
+  }
+
+  @Patch("settings")
+  async patchSettings(@Body() body: UpdateAppSettingsDto) {
+    return this.admin.updateAppSettings(body);
   }
 }

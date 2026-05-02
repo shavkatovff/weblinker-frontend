@@ -56,9 +56,9 @@ export function VizitkaTicket({ content, theme }: Props) {
           </div>
         ) : null}
 
-        {content.address ? (
+        {content.address?.trim() || content.mapsUrl?.trim() ? (
           <p className="text-center text-xs text-neutral-600">
-            {content.address}
+            {content.address || "Xarita havolasi"}
           </p>
         ) : null}
         {content.hoursLine ? (
@@ -67,8 +67,13 @@ export function VizitkaTicket({ content, theme }: Props) {
           </p>
         ) : null}
 
-        {content.address ? (
-          <MapEmbed address={content.address} height={110} className="mt-4" />
+        {content.address?.trim() || content.mapsUrl?.trim() ? (
+          <MapEmbed
+            address={content.address ?? ""}
+            mapsUrl={content.mapsUrl}
+            height={110}
+            className="mt-4"
+          />
         ) : null}
 
         {socials.length ? (

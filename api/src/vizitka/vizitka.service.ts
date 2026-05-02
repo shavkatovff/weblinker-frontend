@@ -1,8 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { Vizitka, VizitkaStatus } from "@prisma/client";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma, Vizitka, VizitkaStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AppSettingsService } from "../settings/app-settings.service";
 import { CreateVizitkaDto, UpdateVizitkaBodyDto } from "./dto/create-vizitka.dto";
-import { computeSubscriptionExpiredAt } from "./subscription";
+import {
+  computeSubscriptionExpiredAt,
+  DEFAULT_VIZITKA_FREE_PUBLISH_DAYS,
+} from "./subscription";
 
 const RESERVED_NAMES = new Set([
   "dashboard",
@@ -35,16 +44,21 @@ const RESERVED_NAMES = new Set([
 
 @Injectable()
 export class VizitkaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly appSettings: AppSettingsService,
+  ) {}
 
   /**
-   * 7 kunlik bepul sinov: yaratilgan sanaga 7 kalendar kuni qo‘shiladi,
-   * o‘sha oxirgi kun oxirigacha (server TZ, odatda Asia/Tashkent).
-   * Har kecha 24:00 dan keyin qoldiq kun hisobi `trialDaysLeft` da 1 ga kamayadi.
+   * Bepul sinov: `days` kalendar kuni, oxirgi kun 23:59:59 (server TZ).
+   * `expired_at` null bo‘lgan eski yozuvlar uchun DEFAULT qabul qilinadi.
    */
-  static computeTrialExpiredAt(anchor: Date = new Date()): Date {
+  static computeTrialExpiredAt(
+    anchor: Date = new Date(),
+    days: number = DEFAULT_VIZITKA_FREE_PUBLISH_DAYS,
+  ): Date {
     const end = new Date(anchor);
-    end.setDate(end.getDate() + 7);
+    end.setDate(end.getDate() + days);
     end.setHours(23, 59, 59, 999);
     return end;
   }
@@ -125,16 +139,37 @@ export class VizitkaService {
   async getPublicByName(name: string) {
     const now = new Date();
     const v = await this.prisma.vizitka.findFirst({
-      where: {
-        name,
-        status: "ACTIVE",
-        OR: [{ expiredAt: null }, { expiredAt: { gt: now } }],
-      },
+      where: { name },
     });
-    if (!v) {
+    if (!v || v.status === "DRAFT") {
       return null;
     }
-    return { site: this.toPublicSiteJson(v) };
+
+    const businessName =
+      (v.headline && v.headline.trim()) || v.name.replace(/-/g, " ");
+    const expiredByDate = v.expiredAt != null && v.expiredAt < now;
+
+    if (v.status === "ACTIVE" && !expiredByDate) {
+      return { site: this.toPublicSiteJson(v) };
+    }
+
+    if (v.status === "PAUSED") {
+      return {
+        publicPause: {
+          kind: "paused" as const,
+          slug: v.name,
+          businessName,
+        },
+      };
+    }
+
+    return {
+      publicPause: {
+        kind: "expired" as const,
+        slug: v.name,
+        businessName,
+      },
+    };
   }
 
   async listMine(ownerPublicId: string) {
@@ -152,41 +187,70 @@ export class VizitkaService {
       throw new ConflictException("Bu manzil (nom) allaqachon olingan");
     }
     const now = new Date();
+    const settings = await this.appSettings.get();
+    const trialDays = settings.freePublishDays;
     const expiredAt =
       dto.subscriptionMonths != null
         ? computeSubscriptionExpiredAt(dto.subscriptionMonths, now)
-        : VizitkaService.computeTrialExpiredAt(now);
+        : VizitkaService.computeTrialExpiredAt(now, trialDays);
+
+    const baseData = {
+      ownerPublicId,
+      name: dto.name,
+      expiredAt,
+      plan: dto.plan || "vizitka",
+      headline: dto.headline,
+      category: dto.category,
+      photoUrl: dto.photoUrl,
+      logoUrl: dto.logoUrl,
+      contactNumber: dto.contactNumber,
+      address: dto.address,
+      workHour: dto.workHour,
+      shortDescription: dto.shortDescription,
+      description: dto.description,
+      templateId: dto.templateId,
+      colorThemeId: dto.colorThemeId,
+      patternId: dto.patternId,
+      status: dto.status || "DRAFT",
+      mapLink: dto.mapLink,
+      instagramLink: dto.instagramLink,
+      telegramLink: dto.telegramLink,
+      tiktokLink: dto.tiktokLink,
+      youtubeLink: dto.youtubeLink,
+      facebookLink: dto.facebookLink,
+      linkedinLink: dto.linkedinLink,
+      xLink: dto.xLink,
+      threadsLink: dto.threadsLink,
+      whatsappLink: dto.whatsappLink,
+      websaytLink: dto.websaytLink,
+    };
+
+    if (dto.subscriptionMonths != null) {
+      const priceSom = await this.appSettings.priceSomForMonths(dto.subscriptionMonths);
+      const price = new Prisma.Decimal(priceSom);
+      const v = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({ where: { publicId: ownerPublicId } });
+        if (!user) {
+          throw new NotFoundException("Foydalanuvchi topilmadi");
+        }
+        if (user.balance.lt(price)) {
+          throw new BadRequestException(
+            `Balans yetarli emas. Paket: ${priceSom} so'm. Joriy balans: ${Number(user.balance).toLocaleString("uz-UZ")} so'm.`,
+          );
+        }
+        await tx.user.update({
+          where: { id: user.id },
+          data: { balance: { decrement: price } },
+        });
+        return tx.vizitka.create({
+          data: baseData,
+        });
+      });
+      return { site: this.toPublicSiteJson(v) };
+    }
+
     const v = await this.prisma.vizitka.create({
-      data: {
-        ownerPublicId,
-        name: dto.name,
-        expiredAt,
-        plan: dto.plan || "vizitka",
-        headline: dto.headline,
-        category: dto.category,
-        photoUrl: dto.photoUrl,
-        logoUrl: dto.logoUrl,
-        contactNumber: dto.contactNumber,
-        address: dto.address,
-        workHour: dto.workHour,
-        shortDescription: dto.shortDescription,
-        description: dto.description,
-        templateId: dto.templateId,
-        colorThemeId: dto.colorThemeId,
-        patternId: dto.patternId,
-        status: dto.status || "DRAFT",
-        mapLink: dto.mapLink,
-        instagramLink: dto.instagramLink,
-        telegramLink: dto.telegramLink,
-        tiktokLink: dto.tiktokLink,
-        youtubeLink: dto.youtubeLink,
-        facebookLink: dto.facebookLink,
-        linkedinLink: dto.linkedinLink,
-        xLink: dto.xLink,
-        threadsLink: dto.threadsLink,
-        whatsappLink: dto.whatsappLink,
-        websaytLink: dto.websaytLink,
-      },
+      data: baseData,
     });
     return { site: this.toPublicSiteJson(v) };
   }

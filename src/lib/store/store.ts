@@ -100,7 +100,7 @@ export function createSite(params: {
 }): UnknownSite {
   const now = new Date();
   const trialEnd = new Date(now);
-  trialEnd.setDate(trialEnd.getDate() + 7);
+  trialEnd.setDate(trialEnd.getDate() + 10);
   trialEnd.setHours(23, 59, 59, 999);
 
   const base = {

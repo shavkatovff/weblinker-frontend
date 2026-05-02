@@ -41,6 +41,7 @@ import { SocialEditor } from "./social-editor";
 import { VizitkaTemplateSwitcher } from "./template-switcher";
 import { ColorPicker } from "./color-picker";
 import { VizitkaSubscriptionPanel } from "@/components/dashboard/vizitka-subscription-panel";
+import { MapEmbed } from "@/components/sites/map-embed";
 import { cn } from "@/lib/cn";
 
 type SaveState = "saved" | "saving" | "error";
@@ -342,7 +343,11 @@ export function Editor({
 
             <Anchor id="contact" />
             <Section title="Manzil va aloqa">
-              <Field label="Veb-manzil" error={slugError}>
+              <Field
+                label="Veb-manzil"
+                error={slugError}
+                hint="Sayt havolasi (slug), jismoniy manzil emas"
+              >
                 <TextInput
                   prefix="weblinker.uz/"
                   value={slugInput}
@@ -357,7 +362,10 @@ export function Editor({
                   placeholder="+998 90 123 45 67"
                 />
               </Field>
-              <Field label="Manzil">
+              <Field
+                label="Manzil"
+                hint="Faktik manzil matni — xaritada qidiruv (xarita havolasi alohida)"
+              >
                 <TextInput
                   value={draft.content.address}
                   onChange={(v) => updateContent("address", v)}
@@ -370,13 +378,31 @@ export function Editor({
                   onChange={(v) => updateContent("hoursLine", v)}
                 />
               </Field>
-              <Field label="Xarita havolasi (ixtiyoriy)" hint="Google Maps yoki Yandex link">
+              <Field
+                label="Xarita havolasi (ixtiyoriy)"
+                hint="Google / Yandex — to'g'ri nuqta; bo'sh bo'lsa yuqoridagi manzil bo'yicha avto-xarita"
+              >
                 <TextInput
                   value={draft.content.mapsUrl ?? ""}
                   onChange={(v) => updateContent("mapsUrl", v)}
                   placeholder="https://maps.google.com/..."
                 />
               </Field>
+              {!isLanding &&
+              (draft.content.address?.trim() || draft.content.mapsUrl?.trim()) ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-neutral-500">
+                    Xarita oldindan ko&apos;rinish — bosing, to&apos;liq xaritada ochiladi
+                  </p>
+                  <MapEmbed
+                    address={draft.content.address ?? ""}
+                    mapsUrl={draft.content.mapsUrl}
+                    height={160}
+                    className="w-full"
+                    rounded="rounded-xl"
+                  />
+                </div>
+              ) : null}
             </Section>
 
             {!isLanding && serverBackedVizitka ? (

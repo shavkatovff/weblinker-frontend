@@ -19,7 +19,7 @@ export function PublicSite({ slug }: { slug: string }) {
   }
 
   if (!site || !normalized) {
-    return <NotFoundPublic slug={slug} />;
+    return <NotFoundPublic />;
   }
 
   if (normalized.status === "paused") {

@@ -20,6 +20,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { JwtAccessGuard } from "../auth/jwt-access.guard";
+import { AppSettingsService } from "../settings/app-settings.service";
 import { CreateVizitkaDto, UpdateVizitkaBodyDto } from "./dto/create-vizitka.dto";
 import { VizitkaService } from "./vizitka.service";
 
@@ -41,7 +42,10 @@ type MulterFileFilterCb = (error: Error | null, acceptFile: boolean) => void;
 
 @Controller("vizitka")
 export class VizitkaController {
-  constructor(private readonly svc: VizitkaService) {}
+  constructor(
+    private readonly svc: VizitkaService,
+    private readonly appSettings: AppSettingsService,
+  ) {}
 
   @Get("public/:name")
   async getPublic(@Param("name") name: string) {
@@ -56,6 +60,12 @@ export class VizitkaController {
   @UseGuards(JwtAccessGuard)
   async mine(@Req() req: { user: { sub: number; pid: string } }) {
     return this.svc.listMine(req.user.pid);
+  }
+
+  /** Jami mijozlar uchun ochiq narxlar va bepul sinov kuni */
+  @Get("pricing")
+  getPricing() {
+    return this.appSettings.getPublicPricing();
   }
 
   @Get(":id")

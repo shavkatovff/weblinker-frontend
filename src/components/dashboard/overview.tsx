@@ -177,7 +177,7 @@ function EmptyOverview() {
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           15 daqiqada oddiy vizitka yoki kengaytirilgan landing page'ni ishga
-          tushiring. 1 hafta bepul sinov davri ochiladi.
+          tushiring. 10 kun bepul sinov davri ochiladi.
         </p>
         <div className="mt-6 flex justify-center gap-2">
           <Button href="/dashboard/sites/new" size="lg">

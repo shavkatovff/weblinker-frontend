@@ -115,6 +115,9 @@ model Vizitka {
 
   status  VizitkaStatus  @default(DRAFT)
 
+  /// Muddat tugashi haqidagi Telegram xabari yuborilgan vaqt (takrorlanmas)
+  expiryNoticeSentAt DateTime? @map("expiry_notice_sent_at")
+
   mapLink  String?  @map("map_link")
   instagramLink  String?  @map("instagram_link")
   telegramLink  String?  @map("telegram_link")
@@ -141,4 +144,18 @@ enum VizitkaStatus {
   ACTIVE
   PAUSED
   EXPIRED
+}
+
+/// Platforma sozlamalari (yagona qator, id = 1): bepul kunlar va paket narxlari (so'm)
+model AppSettings {
+  id Int @id @default(1)
+
+  freePublishDays Int @default(10) @map("free_publish_days")
+  paket3Som       Int @default(37000) @map("paket_3_som")
+  paket6Som       Int @default(57000) @map("paket_6_som")
+  paket12Som      Int @default(97000) @map("paket_12_som")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

@@ -7,7 +7,7 @@ import { normalizeUzPhone } from "../common/phone";
 const OTP_TTL_MS = 2 * 60 * 1000;
 const CALLBACK_REFRESH = "refresh_otp";
 
-function escapeHtml(s: string) {
+export function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
@@ -45,6 +45,22 @@ export class TelegramService {
 
   private expireAt() {
     return new Date(Date.now() + OTP_TTL_MS);
+  }
+
+  /** Oddiy matn/HTML — eslatmalar, obuna tugashi va hokazo */
+  async sendHtmlMessage(telegramUserId: string, html: string): Promise<boolean> {
+    const chatId = String(telegramUserId).trim();
+    if (!chatId || !/^\d+$/.test(chatId)) {
+      this.log.warn(`sendHtmlMessage: noto‘g‘ri chat_id ${telegramUserId}`);
+      return false;
+    }
+    const data = await this.callJson<{ ok?: boolean }>("sendMessage", {
+      chat_id: chatId,
+      text: html,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    });
+    return data?.ok === true;
   }
 
   private async callJson<T = unknown>(method: string, body: object): Promise<T> {
