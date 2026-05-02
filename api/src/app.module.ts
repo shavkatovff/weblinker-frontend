@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { VizitkaModule } from './vizitka/vizitka.module';
 import { PaymentModule } from './payment/payment.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentModule } from './payment/payment.module';
     TelegramModule,
     VizitkaModule,
     PaymentModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

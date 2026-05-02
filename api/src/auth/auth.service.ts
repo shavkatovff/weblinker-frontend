@@ -169,6 +169,20 @@ export class AuthService {
   async me(userId: number) {
     const u = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!u) throw new UnauthorizedException();
-    return { user: this.mapUser(u) };
+    return {
+      user: this.mapUser(u),
+      isAdmin: this.isAdminByPublicId(u.publicId),
+    };
+  }
+
+  private isAdminByPublicId(publicId: string): boolean {
+    const raw = this.config.get<string>("ADMIN_PUBLIC_IDS") ?? "";
+    const set = new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
+    return set.has(publicId);
   }
 }

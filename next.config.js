@@ -22,6 +22,14 @@ const nextConfig = {
         source: "/api/payments/click/:path*",
         destination: `${internalApi}/api/payments/click/:path*`,
       },
+      {
+        source: "/uploads/:path*",
+        destination: `${internalApi}/uploads/:path*`,
+      },
+      {
+        source: "/api/admin/:path*",
+        destination: `${internalApi}/api/admin/:path*`,
+      },
     ];
   },
 };

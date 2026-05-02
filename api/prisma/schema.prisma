@@ -98,7 +98,10 @@ model Vizitka {
   /// Brend / biznes nomi (sarlavha)
   headline  String?
   category  String?
+  /// Hero/katta rasm URL (to‘liq yoki `/uploads/...`)
   photoUrl  String?  @map("photo_url")
+  /// Logo fayli URL — `uploads/logos/` dan
+  logoUrl   String?  @map("logo_url")
   contactNumber  String?  @map("contact_number")
   address  String?
   workHour  String?  @map("work_hour")

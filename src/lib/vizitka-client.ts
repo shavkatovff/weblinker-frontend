@@ -105,3 +105,60 @@ export function buildVizitkaCreatePayload(opts: {
   }
   return { ...base, ...socialToFlat(opts.social) };
 }
+
+/** JWT bilan bitta vizitka (tahrir sahifasi — bazadan yangi logo va h.k.) */
+export async function fetchVizitkaById(
+  id: string,
+): Promise<{ site: unknown } | null> {
+  const t = getAccessToken();
+  if (!t) return null;
+  const r = await fetch(`${base()}/vizitka/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${t}` },
+  });
+  if (!r.ok) return null;
+  return (await r.json()) as { site: unknown };
+}
+
+export async function uploadVizitkaLogo(
+  vizitkaId: string,
+  file: File,
+): Promise<{ site: unknown }> {
+  const t = getAccessToken();
+  if (!t) throw new Error("Kirish talab qilinadi");
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(
+    `${base()}/vizitka/${encodeURIComponent(vizitkaId)}/logo`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}` },
+      body: fd,
+    },
+  );
+  if (!r.ok) {
+    const m = await r.text();
+    throw new Error(m || `HTTP ${r.status}`);
+  }
+  return (await r.json()) as { site: unknown };
+}
+
+export async function patchVizitka(
+  id: string,
+  body: Record<string, unknown>,
+): Promise<{ site: unknown }> {
+  const t = getAccessToken();
+  if (!t) throw new Error("Kirish talab qilinadi");
+  const r = await fetch(`${base()}/vizitka/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${t}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const m = await r.text();
+    throw new Error(m || `HTTP ${r.status}`);
+  }
+  return (await r.json()) as { site: unknown };
+}

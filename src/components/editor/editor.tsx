@@ -46,6 +46,8 @@ type SaveState = "saved" | "saving" | "error";
 
 type Props = {
   initialSite: UnknownSite;
+  /** Bazada vizitka bor — logo serverga yuklanadi */
+  serverBackedVizitka?: boolean;
 };
 
 const RESERVED_SLUGS = new Set([
@@ -91,7 +93,10 @@ const LANDING_SECTIONS: SectionMeta[] = [
   { id: "danger", label: "Xavfli zona" },
 ];
 
-export function Editor({ initialSite }: Props) {
+export function Editor({
+  initialSite,
+  serverBackedVizitka = false,
+}: Props) {
   const router = useRouter();
   const [draft, setDraft] = useState<UnknownSite>(initialSite);
   const [slugInput, setSlugInput] = useState(initialSite.slug);
@@ -282,6 +287,19 @@ export function Editor({ initialSite }: Props) {
                 value={draft.content.logoImage}
                 onChange={updateLogoImage}
                 aspect="square"
+                serverLogoUpload={
+                  !isLanding && serverBackedVizitka && draft.type === "vizitka"
+                    ? { vizitkaId: draft.id }
+                    : undefined
+                }
+                onServerSync={
+                  !isLanding && serverBackedVizitka && draft.type === "vizitka"
+                    ? (s) => {
+                        setDraft(s);
+                        setSavedAt(new Date(s.updatedAt));
+                      }
+                    : undefined
+                }
               />
             </Section>
 

@@ -1,14 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { useSiteById } from "@/lib/store/hooks";
+import { useEffect, useState } from "react";
+import { fetchVizitkaById } from "@/lib/vizitka-client";
+import { getSiteById, saveSite } from "@/lib/store/store";
 import { normalizeSite } from "@/lib/store/normalize";
+import type { UnknownSite } from "@/lib/store/types";
 import { Editor } from "./editor";
 
 export function EditorLoader({ id }: { id: string }) {
-  const { site, ready } = useSiteById(id);
-  const normalized = useMemo(() => (site ? normalizeSite(site) : undefined), [site]);
+  const [site, setSite] = useState<UnknownSite | undefined>(undefined);
+  const [ready, setReady] = useState(false);
+  const [serverBacked, setServerBacked] = useState(false);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const remote = await fetchVizitkaById(id);
+        if (cancel) return;
+        if (remote?.site) {
+          const n = normalizeSite(remote.site as UnknownSite);
+          saveSite(n);
+          setSite(n);
+          setServerBacked(true);
+          setReady(true);
+          return;
+        }
+      } catch {
+        /* tarmoq */
+      }
+      if (cancel) return;
+      const local = getSiteById(id);
+      setServerBacked(false);
+      setSite(local ? normalizeSite(local) : undefined);
+      setReady(true);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [id]);
 
   if (!ready) {
     return (
@@ -18,7 +49,7 @@ export function EditorLoader({ id }: { id: string }) {
     );
   }
 
-  if (!site || !normalized) {
+  if (!site) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-5">
         <div className="mx-auto max-w-md rounded-2xl border border-[color:var(--border)] bg-white p-8 text-center">
@@ -40,5 +71,7 @@ export function EditorLoader({ id }: { id: string }) {
     );
   }
 
-  return <Editor initialSite={normalized} />;
+  return (
+    <Editor initialSite={site} serverBackedVizitka={serverBacked} />
+  );
 }

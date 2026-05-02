@@ -72,6 +72,9 @@ export class VizitkaService {
     const hero = v.photoUrl
       ? { dataUrl: v.photoUrl, sizeBytes: 0, name: "photo" }
       : undefined;
+    const logo = v.logoUrl
+      ? { dataUrl: v.logoUrl, sizeBytes: 0, name: "logo" }
+      : undefined;
     const content = {
       businessName,
       category: v.category?.trim() || "Biznes",
@@ -87,6 +90,7 @@ export class VizitkaService {
         .slice(0, 2)
         .toUpperCase() || "WL",
       heroImage: hero,
+      logoImage: logo,
       colorTheme: (v.colorThemeId as "mono" | "mint") || "mono",
       pattern: (v.patternId as "none" | "dots") || "none",
     };
@@ -142,6 +146,7 @@ export class VizitkaService {
         headline: dto.headline,
         category: dto.category,
         photoUrl: dto.photoUrl,
+        logoUrl: dto.logoUrl,
         contactNumber: dto.contactNumber,
         address: dto.address,
         workHour: dto.workHour,
@@ -174,7 +179,12 @@ export class VizitkaService {
     }
     const patch: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(dto)) {
-      if (val !== undefined) patch[k] = val;
+      if (val === undefined) continue;
+      if ((k === "logoUrl" || k === "photoUrl") && val === "") {
+        patch[k] = null;
+      } else {
+        patch[k] = val;
+      }
     }
     const u = await this.prisma.vizitka.update({
       where: { id },
@@ -189,5 +199,30 @@ export class VizitkaService {
     if (r.count === 0) {
       throw new NotFoundException("Vizitka topilmadi");
     }
+  }
+
+  async getMineOne(id: string, ownerPublicId: string) {
+    const v = await this.prisma.vizitka.findFirst({
+      where: { id, ownerPublicId },
+    });
+    if (!v) {
+      throw new NotFoundException("Vizitka topilmadi");
+    }
+    return { site: this.toPublicSiteJson(v) };
+  }
+
+  /** Diskda saqlangan fayl yo‘li DB ga: `/uploads/logos/...` */
+  async saveUploadedLogo(id: string, ownerPublicId: string, relativeUrl: string) {
+    const existing = await this.prisma.vizitka.findFirst({
+      where: { id, ownerPublicId },
+    });
+    if (!existing) {
+      throw new NotFoundException("Vizitka topilmadi");
+    }
+    const u = await this.prisma.vizitka.update({
+      where: { id },
+      data: { logoUrl: relativeUrl },
+    });
+    return { site: this.toPublicSiteJson(u) };
   }
 }

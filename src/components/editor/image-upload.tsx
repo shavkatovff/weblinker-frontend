@@ -1,12 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { SiteImage } from "@/lib/store/types";
+import { SiteImage, type UnknownSite } from "@/lib/store/types";
 import {
   MAX_IMAGE_BYTES,
   fileToSiteImage,
   formatBytes,
 } from "@/lib/image-utils";
+import { patchVizitka, uploadVizitkaLogo } from "@/lib/vizitka-client";
+import { normalizeSite } from "@/lib/store/normalize";
+import { saveSite } from "@/lib/store/store";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -15,6 +18,10 @@ type Props = {
   value?: SiteImage;
   onChange: (image: SiteImage | undefined) => void;
   aspect?: "square" | "wide";
+  /** Server: `api/uploads/logos` ga yuklab, `vizitkas.logo_url` ni yangilaydi */
+  serverLogoUpload?: { vizitkaId: string };
+  /** Server javobidan keyin `draft`ni to‘liq yangilash */
+  onServerSync?: (site: UnknownSite) => void;
 };
 
 export function ImageUpload({
@@ -23,10 +30,13 @@ export function ImageUpload({
   value,
   onChange,
   aspect = "wide",
+  serverLogoUpload,
+  onServerSync,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const ratio = aspect === "square" ? "aspect-square" : "aspect-[16/9]";
 
@@ -41,6 +51,28 @@ export function ImageUpload({
       setError(`Rasm hajmi ${formatBytes(MAX_IMAGE_BYTES)} dan oshmasligi kerak`);
       return;
     }
+    if (serverLogoUpload) {
+      setUploading(true);
+      setError(null);
+      try {
+        const res = await uploadVizitkaLogo(serverLogoUpload.vizitkaId, file);
+        const full = normalizeSite(res.site as UnknownSite);
+        saveSite(full);
+        onServerSync?.(full);
+        const logo = full.content.logoImage as SiteImage | undefined;
+        if (logo) {
+          onChange(logo);
+        } else {
+          setError("Javobda logo kelmadi");
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Yuklashda xato");
+      } finally {
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
+      }
+      return;
+    }
     try {
       const image = await fileToSiteImage(file);
       onChange(image);
@@ -49,8 +81,24 @@ export function ImageUpload({
     }
   };
 
-  const onRemove = () => {
+  const onRemove = async () => {
     setError(null);
+    if (serverLogoUpload) {
+      setUploading(true);
+      try {
+        const res = await patchVizitka(serverLogoUpload.vizitkaId, { logoUrl: "" });
+        const next = normalizeSite(res.site as UnknownSite);
+        saveSite(next);
+        onServerSync?.(next);
+        onChange(undefined);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "O‘chirishda xato");
+      } finally {
+        setUploading(false);
+      }
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     onChange(undefined);
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -77,14 +125,16 @@ export function ImageUpload({
             <div className="flex gap-2">
               <button
                 type="button"
+                disabled={uploading}
                 onClick={() => inputRef.current?.click()}
-                className="h-8 rounded-md border border-[color:var(--border)] px-3 text-xs font-medium text-black transition-colors hover:border-black"
+                className="h-8 rounded-md border border-[color:var(--border)] px-3 text-xs font-medium text-black transition-colors hover:border-black disabled:opacity-50"
               >
-                Almashtirish
+                {uploading ? "Yuklanmoqda…" : "Almashtirish"}
               </button>
               <button
                 type="button"
-                onClick={onRemove}
+                disabled={uploading}
+                onClick={() => void onRemove()}
                 className="h-8 rounded-md border border-[color:var(--border)] px-3 text-xs font-medium text-red-700 transition-colors hover:border-red-700 hover:bg-red-50"
               >
                 O&apos;chirish
@@ -95,6 +145,7 @@ export function ImageUpload({
       ) : (
         <button
           type="button"
+          disabled={uploading}
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();

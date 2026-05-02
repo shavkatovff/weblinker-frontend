@@ -1,13 +1,23 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { urlencoded } from 'express';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 
 // .env yoki tizim TZ bo‘lmasa — server vaqti Asia/Tashkent
 process.env.TZ ??= 'Asia/Tashkent';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const uploadRoot = join(process.cwd(), 'uploads');
+  if (!existsSync(uploadRoot)) {
+    mkdirSync(uploadRoot, { recursive: true });
+  }
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+
   /** CLICK Prepare/Complete odatda application/x-www-form-urlencoded yuboradi */
   app.use(urlencoded({ extended: true, limit: '256kb' }));
   const frontendOrigins = process.env.FRONTEND_ORIGIN

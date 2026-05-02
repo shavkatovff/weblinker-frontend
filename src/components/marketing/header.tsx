@@ -17,9 +17,6 @@ export function Header() {
           <Button href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
             Kirish
           </Button>
-          <Button href="/signup" size="sm">
-            Boshlash
-          </Button>
         </div>
       </Container>
     </header>

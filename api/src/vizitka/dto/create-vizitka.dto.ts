@@ -26,8 +26,13 @@ export class CreateVizitkaDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(2048)
   photoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  logoUrl?: string;
 
   @IsOptional()
   @IsString()
@@ -92,7 +97,8 @@ export class CreateVizitkaDto {
 export class UpdateVizitkaBodyDto {
   @IsOptional() @IsString() @MaxLength(200) headline?: string;
   @IsOptional() @IsString() @MaxLength(80) category?: string;
-  @IsOptional() @IsString() photoUrl?: string;
+  @IsOptional() @IsString() @MaxLength(2048) photoUrl?: string;
+  @IsOptional() @IsString() @MaxLength(2048) logoUrl?: string;
   @IsOptional() @IsString() contactNumber?: string;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() workHour?: string;
