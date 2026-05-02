@@ -443,7 +443,7 @@ function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TypeCard
           title="Vizitka"
-          price="39 000 so'm dan · 3 paket"
+          price="37 000 so'm dan · 3 paket"
           description="Bir ekranli biznes kartasi — kontaktlar, ijtimoiy tarmoq linklari, manzil. Obuna muddatini tanlaysiz."
           features={[
             "1 ekranli sayt",

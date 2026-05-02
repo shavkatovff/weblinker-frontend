@@ -16,34 +16,34 @@ export const VIZITKA_PACKAGES: VizitkaPackage[] = [
   {
     id: "p3",
     months: 3,
-    priceSom: 39_000,
+    priceSom: 37_000,
     title: "3 oy",
     subtitle: "Qisqa muddat — sinab ko‘rish uchun qulay.",
-    hint: "≈ 13 000 so'm/oy",
+    hint: "≈ 12 333 so'm/oy",
   },
   {
     id: "p6",
     months: 6,
-    priceSom: 59_000,
+    priceSom: 57_000,
     title: "6 oy",
     subtitle: "Ko‘pchilik tanlaydi — yumshoq narx va uzoq ishlab turish.",
-    hint: "≈ 9 833 so'm/oy",
+    hint: "≈ 9 500 so'm/oy",
     recommended: true,
   },
   {
     id: "p12",
     months: 12,
-    priceSom: 99_000,
+    priceSom: 97_000,
     title: "1 yil",
     subtitle: "Eng foydali — bir yillik barqaror obuna.",
-    hint: "≈ 8 250 so'm/oy",
+    hint: "≈ 8 083 so'm/oy",
   },
 ];
 
 export const PACKAGE_PRICE_BY_MONTHS: Record<3 | 6 | 12, number> = {
-  3: 39_000,
-  6: 59_000,
-  12: 99_000,
+  3: 37_000,
+  6: 57_000,
+  12: 97_000,
 };
 
 export function formatSom(n: number): string {

@@ -18,7 +18,7 @@ const plans: Plan[] = [
   {
     id: "vizitka",
     name: "Vizitka",
-    price: 39_000,
+    price: 37_000,
     priceSuffix: "dan",
     priceNote: "3 oy, 6 oy va 1 yil paketlari",
     tagline: "Bir ekranli biznes kartasi",

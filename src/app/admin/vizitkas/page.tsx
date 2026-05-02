@@ -33,16 +33,80 @@ const STATUS_OPTS = [
   { v: "EXPIRED", label: "Tugagan" },
 ] as const;
 
-function formatEnd(iso: string | null | undefined) {
-  if (!iso) return "—";
+/** Kalendar bo‘yicha qolgan kunlar (00:00 oralig‘ida) */
+function calendarDaysUntilExpiry(iso: string): number | null {
   try {
-    return new Date(iso).toLocaleString("uz-UZ", {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
+    const end = new Date(iso);
+    if (Number.isNaN(end.getTime())) return null;
+    const now = new Date();
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((endDay.getTime() - today.getTime()) / 86400000);
   } catch {
-    return "—";
+    return null;
   }
+}
+
+function expiryParts(iso: string | null | undefined): {
+  dateLine: string;
+  daysLine: string;
+  daysClass: string;
+} {
+  if (!iso?.trim()) {
+    return {
+      dateLine: "—",
+      daysLine: "Tugash sanasi yo‘q",
+      daysClass: "text-zinc-400",
+    };
+  }
+  const end = new Date(iso);
+  if (Number.isNaN(end.getTime())) {
+    return {
+      dateLine: "—",
+      daysLine: "Noto‘g‘ri sana",
+      daysClass: "text-amber-700",
+    };
+  }
+  const dateLine = end.toLocaleString("uz-UZ", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+  const left = calendarDaysUntilExpiry(iso);
+  if (left === null) {
+    return {
+      dateLine,
+      daysLine: "",
+      daysClass: "text-zinc-500",
+    };
+  }
+  if (left > 0) {
+    return {
+      dateLine,
+      daysLine: `${left} kun qoldi`,
+      daysClass: left <= 7 ? "text-amber-700" : "text-teal-700",
+    };
+  }
+  if (left === 0) {
+    return {
+      dateLine,
+      daysLine: "Bugun tugaydi",
+      daysClass: "text-amber-800",
+    };
+  }
+  return {
+    dateLine,
+    daysLine: `Tugagan (${Math.abs(left)} kun oldin)`,
+    daysClass: "text-red-700",
+  };
+}
+
+function formatTodayUz(): string {
+  return new Date().toLocaleDateString("uz-UZ", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export default function AdminVizitkasPage() {
@@ -74,6 +138,9 @@ export default function AdminVizitkasPage() {
         method: "PATCH",
         body: JSON.stringify(body),
       });
+      if (body.extendByDays != null) {
+        setDayInputs((m) => ({ ...m, [id]: "0" }));
+      }
       await reload();
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Xato");
@@ -121,6 +188,16 @@ export default function AdminVizitkasPage() {
       <AdminPageHeader
         title="Vizitkalar"
         description="Barcha saytlar: holat, obuna tugashi, muddatni uzaytirish va o‘chirish."
+        actions={
+          <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white px-4 py-3 text-right shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              Bugungi sana
+            </p>
+            <p className="mt-1 max-w-[240px] text-sm font-semibold leading-snug text-zinc-900">
+              {formatTodayUz()}
+            </p>
+          </div>
+        }
       />
 
       {err ? <AdminAlert>{err}</AdminAlert> : null}
@@ -132,8 +209,18 @@ export default function AdminVizitkasPage() {
               <th className={adminTh}>Manzil</th>
               <th className={adminTh}>Nomi</th>
               <th className={adminTh}>Holat</th>
-              <th className={adminTh}>Tugash</th>
-              <th className={adminTh}>+ kun</th>
+              <th className={adminTh}>
+                <span className="block font-semibold">Tugash</span>
+                <span className="mt-0.5 block text-[10px] font-normal normal-case leading-snug text-zinc-500">
+                  Sana va qolgan kunlar
+                </span>
+              </th>
+              <th className={adminTh}>
+                <span className="block font-semibold">+ kun</span>
+                <span className="mt-0.5 block text-[10px] font-normal normal-case leading-snug text-zinc-500">
+                  Raqam tugash sanasiga qo‘shiladi
+                </span>
+              </th>
               <th className={adminTh}>Yangilangan</th>
               <th className={`${adminTh} text-right`}>Amallar</th>
             </tr>
@@ -142,7 +229,11 @@ export default function AdminVizitkasPage() {
             {items.map((v) => {
               const st = v.vizitkaStatus ?? v.status;
               const busy = busyId === v.id;
-              const daysVal = dayInputs[v.id] ?? "30";
+              const daysVal = dayInputs[v.id] ?? "0";
+              const daysNum = parseInt(daysVal, 10);
+              const canAddDays =
+                Number.isFinite(daysNum) && daysNum >= 1 && daysNum <= 3650;
+              const exp = expiryParts(v.expiredAt ?? undefined);
               return (
                 <tr key={v.id} className={cn(adminTr, busy && "opacity-70")}>
                   <td className={`${adminTd} font-mono text-xs text-zinc-600`}>{v.slug}</td>
@@ -167,37 +258,59 @@ export default function AdminVizitkasPage() {
                       ))}
                     </select>
                   </td>
-                  <td className={`${adminTd} whitespace-nowrap text-zinc-600`}>
-                    {formatEnd(v.expiredAt ?? undefined)}
+                  <td className={`${adminTd} align-top text-zinc-800`}>
+                    <div className="flex min-w-[132px] flex-col gap-1 py-0.5">
+                      <span className="text-[13px] font-medium tabular-nums leading-snug text-zinc-900">
+                        {exp.dateLine}
+                      </span>
+                      {exp.daysLine ? (
+                        <span
+                          className={cn(
+                            "text-[11px] font-semibold leading-tight",
+                            exp.daysClass,
+                          )}
+                        >
+                          {exp.daysLine}
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className={adminTd}>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={1}
-                        max={3650}
-                        className={inpDays}
-                        disabled={busy}
-                        value={daysVal}
-                        onChange={(e) =>
-                          setDayInputs((m) => ({
-                            ...m,
-                            [v.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          const n = parseInt(daysVal, 10);
-                          if (!Number.isFinite(n) || n < 1) return;
-                          void patchRow(v.id, { extendByDays: n });
-                        }}
-                        className={btnMini}
-                      >
-                        Qo‘shish
-                      </button>
+                    <div className="flex max-w-[200px] flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={0}
+                          max={3650}
+                          inputMode="numeric"
+                          className={cn(inpDays, "w-16")}
+                          disabled={busy}
+                          value={daysVal}
+                          onChange={(e) =>
+                            setDayInputs((m) => ({
+                              ...m,
+                              [v.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <span
+                          className="text-[11px] font-medium text-zinc-500"
+                          title="Tugash sanasiga qo‘shiladigan kunlar"
+                        >
+                          kun
+                        </span>
+                        <button
+                          type="button"
+                          disabled={busy || !canAddDays}
+                          onClick={() => {
+                            if (!canAddDays) return;
+                            void patchRow(v.id, { extendByDays: daysNum });
+                          }}
+                          className={btnMini}
+                        >
+                          Qo‘shish
+                        </button>
+                      </div>
                     </div>
                   </td>
                   <td className={`${adminTd} whitespace-nowrap text-xs text-zinc-500`}>
