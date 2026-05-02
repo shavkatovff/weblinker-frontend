@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -36,6 +37,11 @@ export class AdminController {
     @Body() body: AdminUpdateVizitkaDto,
   ) {
     return this.admin.updateVizitka(id, body);
+  }
+
+  @Delete("vizitkas/:id")
+  async deleteVizitka(@Param("id") id: string) {
+    return this.admin.deleteVizitka(id);
   }
 
   @Get("users")

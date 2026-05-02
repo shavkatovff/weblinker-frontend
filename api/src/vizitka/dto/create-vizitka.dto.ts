@@ -92,6 +92,11 @@ export class CreateVizitkaDto {
   @IsOptional() @IsString() threadsLink?: string;
   @IsOptional() @IsString() whatsappLink?: string;
   @IsOptional() @IsString() websaytLink?: string;
+
+  /** Tanlangan obuna: vizitka yaratishda tugash sanasi (oy bo'yicha) */
+  @IsOptional()
+  @IsIn([3, 6, 12])
+  subscriptionMonths?: 3 | 6 | 12;
 }
 
 export class UpdateVizitkaBodyDto {

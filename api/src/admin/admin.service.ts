@@ -52,6 +52,8 @@ export class AdminService {
     return {
       items: rows.map((v) => ({
         ...this.vizitkaSvc.toPublicSiteJson(v),
+        vizitkaStatus: v.status,
+        expiredAt: v.expiredAt ? v.expiredAt.toISOString() : null,
         ownerNumber: v.user.number,
         ownerPublicId: v.user.publicId,
         ownerName: v.user.fullName,
@@ -97,8 +99,27 @@ export class AdminService {
     }
 
     const patch: Record<string, unknown> = {};
+    const skipExpiredFromBody = dto.extendByDays != null;
+
+    if (dto.extendByDays != null) {
+      const now = new Date();
+      const base =
+        v.expiredAt != null && v.expiredAt.getTime() > now.getTime()
+          ? v.expiredAt
+          : now;
+      patch.expiredAt = new Date(
+        base.getTime() + dto.extendByDays * 86400000,
+      );
+    }
+
     for (const [k, val] of Object.entries(dto)) {
       if (val === undefined) continue;
+      if (k === "extendByDays") continue;
+      if (k === "expiredAt") {
+        if (skipExpiredFromBody) continue;
+        patch.expiredAt = val === null ? null : new Date(val as string);
+        continue;
+      }
       if ((k === "logoUrl" || k === "photoUrl") && val === "") {
         patch[k] = null;
       } else {
@@ -112,6 +133,13 @@ export class AdminService {
       data: patch as any,
     });
     return { site: this.vizitkaSvc.toPublicSiteJson(u) };
+  }
+
+  async deleteVizitka(id: string) {
+    const v = await this.prisma.vizitka.findUnique({ where: { id } });
+    if (!v) throw new NotFoundException("Vizitka topilmadi");
+    await this.prisma.vizitka.delete({ where: { id } });
+    return { ok: true };
   }
 
   async listUsers() {

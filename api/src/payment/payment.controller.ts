@@ -14,6 +14,9 @@ export class PaymentController {
     @Req() req: { user: { sub: number } },
     @Body() dto: CreateClickPaymentDto,
   ) {
-    return this.payments.createClickPayment(req.user.sub, dto.amount);
+    return this.payments.createClickPayment(req.user.sub, dto.amount, {
+      vizitkaId: dto.vizitkaId,
+      subscriptionMonths: dto.subscriptionMonths,
+    });
   }
 }

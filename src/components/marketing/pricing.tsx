@@ -6,6 +6,9 @@ type Plan = {
   id: string;
   name: string;
   price: number;
+  /** Masalan `dan` yoki `/ oy` */
+  priceSuffix: string;
+  priceNote?: string;
   tagline: string;
   features: string[];
   highlighted: boolean;
@@ -15,7 +18,9 @@ const plans: Plan[] = [
   {
     id: "vizitka",
     name: "Vizitka",
-    price: 27000,
+    price: 39_000,
+    priceSuffix: "dan",
+    priceNote: "3 oy, 6 oy va 1 yil paketlari",
     tagline: "Bir ekranli biznes kartasi",
     features: [
       "1 ekranli sayt",
@@ -27,7 +32,8 @@ const plans: Plan[] = [
   {
     id: "landing",
     name: "Landing",
-    price: 87000,
+    price: 87_000,
+    priceSuffix: "/ oy",
     tagline: "Bir nechta bo'limli sayt",
     features: [
       "Vizitka tarifidagi barchasi",
@@ -90,11 +96,18 @@ function PricingCard({ plan }: { plan: Plan }) {
       </h3>
       <p className="mt-1 text-sm text-neutral-500">{plan.tagline}</p>
 
-      <div className="mt-6 flex items-baseline gap-2">
-        <span className="text-5xl font-semibold tracking-tight tabular-nums text-black">
-          {formatPrice(plan.price)}
-        </span>
-        <span className="text-sm text-neutral-500">so&apos;m / oy</span>
+      <div className="mt-6 flex flex-col gap-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-5xl font-semibold tracking-tight tabular-nums text-black">
+            {formatPrice(plan.price)}
+          </span>
+          <span className="text-sm text-neutral-500">
+            so&apos;m {plan.priceSuffix}
+          </span>
+        </div>
+        {plan.priceNote ? (
+          <p className="text-xs text-neutral-500">{plan.priceNote}</p>
+        ) : null}
       </div>
 
       <div className="my-7 h-px w-full bg-[color:var(--border)]" />

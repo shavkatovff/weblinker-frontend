@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import {
+  AdminAlert,
+  AdminEmpty,
+  AdminPageHeader,
+  AdminTableWrap,
+  adminTd,
+  adminTh,
+  adminTr,
+} from "@/components/admin/admin-ui";
 
 type Row = {
   id: number;
@@ -30,44 +39,46 @@ export default function AdminUsersPage() {
     })();
   }, []);
 
-  if (err) return <p className="text-sm text-red-700">{err}</p>;
-
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-black">
-        Foydalanuvchilar
-      </h1>
-      <p className="mt-1 text-sm text-neutral-600">
-        Ro‘yxat, balans va vizitkalar soni.
-      </p>
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-[color:var(--border)] bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="Foydalanuvchilar"
+        description="Ro‘yxatdan o‘tgan mijozlar: telefon, balans va vizitkalar soni."
+      />
+
+      {err ? <AdminAlert>{err}</AdminAlert> : null}
+
+      <AdminTableWrap>
+        <table className="w-full min-w-[640px] text-left">
           <thead>
-            <tr className="border-b border-[color:var(--border)] text-xs uppercase tracking-wide text-neutral-500">
-              <th className="px-4 py-3">ID</th>
-              <th className="px-4 py-3">Telefon</th>
-              <th className="px-4 py-3">Ism</th>
-              <th className="px-4 py-3">Balans (so‘m)</th>
-              <th className="px-4 py-3">Vizitkalar</th>
-              <th className="px-4 py-3">Ro‘yxatdan</th>
-              <th className="px-4 py-3" />
+            <tr className="border-b border-zinc-200 bg-zinc-50/90">
+              <th className={adminTh}>ID</th>
+              <th className={adminTh}>Telefon</th>
+              <th className={adminTh}>Ism</th>
+              <th className={adminTh}>Balans</th>
+              <th className={adminTh}>Vizitkalar</th>
+              <th className={adminTh}>Ro‘yxatdan</th>
+              <th className={`${adminTh} text-right`} />
             </tr>
           </thead>
           <tbody>
             {items.map((u) => (
-              <tr key={u.id} className="border-b border-neutral-100 last:border-0">
-                <td className="px-4 py-3 font-mono text-xs">{u.id}</td>
-                <td className="px-4 py-3">{u.number}</td>
-                <td className="px-4 py-3">{u.fullName ?? "—"}</td>
-                <td className="px-4 py-3 tabular-nums">{u.balance.toLocaleString("uz-UZ")}</td>
-                <td className="px-4 py-3">{u.vizitkaCount}</td>
-                <td className="px-4 py-3 text-neutral-600">
+              <tr key={u.id} className={adminTr}>
+                <td className={`${adminTd} font-mono text-xs text-zinc-500`}>{u.id}</td>
+                <td className={`${adminTd} font-medium`}>{u.number}</td>
+                <td className={adminTd}>{u.fullName ?? "—"}</td>
+                <td className={`${adminTd} tabular-nums font-semibold text-zinc-900`}>
+                  {u.balance.toLocaleString("uz-UZ")}{" "}
+                  <span className="text-xs font-normal text-zinc-500">so‘m</span>
+                </td>
+                <td className={adminTd}>{u.vizitkaCount}</td>
+                <td className={`${adminTd} text-xs text-zinc-500`}>
                   {new Date(u.createdAt).toLocaleString("uz-UZ")}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className={`${adminTd} text-right`}>
                   <Link
                     href={`/admin/users/${u.id}`}
-                    className="font-medium text-black underline-offset-2 hover:underline"
+                    className="text-sm font-semibold text-teal-800 underline-offset-2 hover:text-teal-950 hover:underline"
                   >
                     Batafsil
                   </Link>
@@ -76,12 +87,10 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
-        {items.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-neutral-500">
-            Foydalanuvchi yo‘q.
-          </p>
+        {items.length === 0 && !err ? (
+          <AdminEmpty title="Foydalanuvchi yo‘q" hint="Ro‘yxat bo‘sh." />
         ) : null}
-      </div>
+      </AdminTableWrap>
     </div>
   );
 }

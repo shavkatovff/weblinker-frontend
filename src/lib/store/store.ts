@@ -101,6 +101,7 @@ export function createSite(params: {
   const now = new Date();
   const trialEnd = new Date(now);
   trialEnd.setDate(trialEnd.getDate() + 7);
+  trialEnd.setHours(23, 59, 59, 999);
 
   const base = {
     id: newId(),
@@ -168,8 +169,13 @@ export function suggestSlug(seed: string): string {
   return candidate;
 }
 
+/** Qolgan sinov kunlari (kalendar bo‘yicha): har kecha 00:00 dan keyin 1 ga kamayadi */
 export function trialDaysLeft(site: Pick<Site, "trialEndsAt" | "subscriptionEndsAt">): number {
-  const ends = site.subscriptionEndsAt ?? site.trialEndsAt;
-  const ms = new Date(ends).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+  const endsIso = site.subscriptionEndsAt ?? site.trialEndsAt;
+  const end = new Date(endsIso);
+  const now = new Date();
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((endDay.getTime() - today.getTime()) / 86400000);
+  return Math.max(0, diff);
 }

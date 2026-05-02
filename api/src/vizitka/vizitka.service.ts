@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { Vizitka, VizitkaStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateVizitkaDto, UpdateVizitkaBodyDto } from "./dto/create-vizitka.dto";
+import { computeSubscriptionExpiredAt } from "./subscription";
 
 const RESERVED_NAMES = new Set([
   "dashboard",
@@ -36,6 +37,18 @@ const RESERVED_NAMES = new Set([
 export class VizitkaService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * 7 kunlik bepul sinov: yaratilgan sanaga 7 kalendar kuni qo‘shiladi,
+   * o‘sha oxirgi kun oxirigacha (server TZ, odatda Asia/Tashkent).
+   * Har kecha 24:00 dan keyin qoldiq kun hisobi `trialDaysLeft` da 1 ga kamayadi.
+   */
+  static computeTrialExpiredAt(anchor: Date = new Date()): Date {
+    const end = new Date(anchor);
+    end.setDate(end.getDate() + 7);
+    end.setHours(23, 59, 59, 999);
+    return end;
+  }
+
   assertNameAllowed(name: string) {
     if (RESERVED_NAMES.has(name)) {
       throw new ConflictException("Bu manzil tizim tomonidan band");
@@ -51,9 +64,9 @@ export class VizitkaService {
 
   toPublicSiteJson(v: Vizitka) {
     const businessName = (v.headline && v.headline.trim()) || v.name.replace(/-/g, " ");
-    const defaultTrial = new Date();
-    defaultTrial.setDate(defaultTrial.getDate() + 7);
-    const trialEnds = v.expiredAt ? v.expiredAt.toISOString() : defaultTrial.toISOString();
+    const trialEnds = (
+      v.expiredAt ?? VizitkaService.computeTrialExpiredAt(v.createdAt)
+    ).toISOString();
     const social: { id: string; network: string; value: string }[] = [];
     const push = (network: string, value: string | null | undefined) => {
       if (!value?.trim()) return;
@@ -104,7 +117,7 @@ export class VizitkaService {
       createdAt: v.createdAt.toISOString(),
       updatedAt: v.updatedAt.toISOString(),
       trialEndsAt: trialEnds,
-      subscriptionEndsAt: v.expiredAt ? v.expiredAt.toISOString() : undefined,
+      subscriptionEndsAt: trialEnds,
       content,
     };
   }
@@ -138,10 +151,16 @@ export class VizitkaService {
     if (exists) {
       throw new ConflictException("Bu manzil (nom) allaqachon olingan");
     }
+    const now = new Date();
+    const expiredAt =
+      dto.subscriptionMonths != null
+        ? computeSubscriptionExpiredAt(dto.subscriptionMonths, now)
+        : VizitkaService.computeTrialExpiredAt(now);
     const v = await this.prisma.vizitka.create({
       data: {
         ownerPublicId,
         name: dto.name,
+        expiredAt,
         plan: dto.plan || "vizitka",
         headline: dto.headline,
         category: dto.category,

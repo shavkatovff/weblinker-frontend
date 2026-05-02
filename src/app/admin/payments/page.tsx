@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import {
+  AdminAlert,
+  AdminEmpty,
+  AdminPageHeader,
+  AdminTableWrap,
+  StatusBadge,
+  adminTd,
+  adminTh,
+  adminTr,
+} from "@/components/admin/admin-ui";
 
 type PayRow = {
   id: number;
@@ -42,83 +52,85 @@ export default function AdminPaymentsPage() {
     })();
   }, [skip]);
 
-  if (err) return <p className="text-sm text-red-700">{err}</p>;
-
   const start = total === 0 ? 0 : skip + 1;
   const end = Math.min(skip + items.length, total);
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-black">To‘lovlar</h1>
-      <p className="mt-1 text-sm text-neutral-600">
-        Oxirgi tranzaksiyalar (CLICK). Jami: {total}.
-      </p>
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-[color:var(--border)] bg-white">
-        <table className="w-full min-w-[800px] text-left text-sm">
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="To‘lovlar"
+        description={`CLICK tranzaksiyalari. Jami yozuvlar: ${total}.`}
+      />
+
+      {err ? <AdminAlert>{err}</AdminAlert> : null}
+
+      <AdminTableWrap>
+        <table className="w-full min-w-[800px] text-left">
           <thead>
-            <tr className="border-b border-[color:var(--border)] text-xs uppercase tracking-wide text-neutral-500">
-              <th className="px-4 py-3">Vaqt</th>
-              <th className="px-4 py-3">So‘m</th>
-              <th className="px-4 py-3">Holat</th>
-              <th className="px-4 py-3">Foydalanuvchi</th>
-              <th className="px-4 py-3">merchant_trans_id</th>
-              <th className="px-4 py-3">click_trans_id</th>
+            <tr className="border-b border-zinc-200 bg-zinc-50/90">
+              <th className={adminTh}>Vaqt</th>
+              <th className={adminTh}>So‘m</th>
+              <th className={adminTh}>Holat</th>
+              <th className={adminTh}>Foydalanuvchi</th>
+              <th className={adminTh}>merchant_trans_id</th>
+              <th className={adminTh}>click_trans_id</th>
             </tr>
           </thead>
           <tbody>
             {items.map((p) => (
-              <tr key={p.id} className="border-b border-neutral-100 last:border-0">
-                <td className="whitespace-nowrap px-4 py-3 text-neutral-700">
+              <tr key={p.id} className={adminTr}>
+                <td className={`${adminTd} whitespace-nowrap text-zinc-700`}>
                   {new Date(p.createdAt).toLocaleString("uz-UZ")}
                   {p.paidAt ? (
-                    <span className="block text-xs text-neutral-500">
+                    <span className="mt-1 block text-[11px] text-zinc-500">
                       To‘langan: {new Date(p.paidAt).toLocaleString("uz-UZ")}
                     </span>
                   ) : null}
                 </td>
-                <td className="px-4 py-3 tabular-nums font-medium">
+                <td className={`${adminTd} tabular-nums text-base font-semibold text-zinc-900`}>
                   {p.amount.toLocaleString("uz-UZ")}
                 </td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3">
-                  <span>{p.user.number}</span>
+                <td className={adminTd}>
+                  <StatusBadge status={p.status} />
+                </td>
+                <td className={adminTd}>
+                  <span className="font-medium">{p.user.number}</span>
                   {p.user.fullName ? (
-                    <span className="text-neutral-600"> — {p.user.fullName}</span>
+                    <span className="text-zinc-600"> — {p.user.fullName}</span>
                   ) : null}
-                  <div className="mt-0.5">
+                  <div className="mt-1">
                     <Link
                       href={`/admin/users/${p.user.id}`}
-                      className="text-xs text-black underline-offset-2 hover:underline"
+                      className="text-xs font-semibold text-teal-800 underline-offset-2 hover:underline"
                     >
                       Profil
                     </Link>
                   </div>
                 </td>
-                <td className="max-w-[180px] truncate px-4 py-3 font-mono text-xs">
+                <td className={`max-w-[180px] truncate ${adminTd} font-mono text-xs text-zinc-600`}>
                   {p.merchantTransId}
                 </td>
-                <td className="max-w-[120px] truncate px-4 py-3 font-mono text-xs">
+                <td className={`max-w-[120px] truncate ${adminTd} font-mono text-xs text-zinc-600`}>
                   {p.clickTransId ?? "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {items.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-neutral-500">
-            To‘lovlar yo‘q.
-          </p>
+        {items.length === 0 && !err ? (
+          <AdminEmpty title="To‘lovlar yo‘q" hint="CLICK orqali to‘lov kelganda bu yerda ko‘rinadi." />
         ) : null}
-      </div>
+      </AdminTableWrap>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <p className="text-neutral-600">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+        <p className="text-sm text-zinc-600">
           {total > 0 ? (
             <>
-              {start}–{end} / {total}
+              Ko‘rsatilmoqda <span className="font-semibold tabular-nums text-zinc-900">{start}–{end}</span> /{" "}
+              <span className="font-semibold tabular-nums text-zinc-900">{total}</span>
             </>
           ) : (
-            "0 ta"
+            "0 ta yozuv"
           )}
         </p>
         <div className="flex gap-2">
@@ -126,7 +138,7 @@ export default function AdminPaymentsPage() {
             type="button"
             disabled={skip <= 0}
             onClick={() => setSkip((s) => Math.max(0, s - PAGE))}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
           >
             Oldingi
           </button>
@@ -134,7 +146,7 @@ export default function AdminPaymentsPage() {
             type="button"
             disabled={skip + PAGE >= total}
             onClick={() => setSkip((s) => s + PAGE)}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 font-medium disabled:opacity-40"
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
           >
             Keyingi
           </button>

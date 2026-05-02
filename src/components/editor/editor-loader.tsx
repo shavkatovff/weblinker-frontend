@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { fetchVizitkaById } from "@/lib/vizitka-client";
 import { getSiteById, saveSite } from "@/lib/store/store";
 import { normalizeSite } from "@/lib/store/normalize";
@@ -9,37 +10,51 @@ import type { UnknownSite } from "@/lib/store/types";
 import { Editor } from "./editor";
 
 export function EditorLoader({ id }: { id: string }) {
+  const searchParams = useSearchParams();
   const [site, setSite] = useState<UnknownSite | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [serverBacked, setServerBacked] = useState(false);
 
+  const pullRemote = useCallback(async (): Promise<boolean> => {
+    try {
+      const remote = await fetchVizitkaById(id);
+      if (remote?.site) {
+        const n = normalizeSite(remote.site as UnknownSite);
+        saveSite(n);
+        setSite(n);
+        setServerBacked(true);
+        return true;
+      }
+    } catch {
+      /* tarmoq */
+    }
+    return false;
+  }, [id]);
+
   useEffect(() => {
     let cancel = false;
     (async () => {
-      try {
-        const remote = await fetchVizitkaById(id);
-        if (cancel) return;
-        if (remote?.site) {
-          const n = normalizeSite(remote.site as UnknownSite);
-          saveSite(n);
-          setSite(n);
-          setServerBacked(true);
-          setReady(true);
-          return;
-        }
-      } catch {
-        /* tarmoq */
-      }
+      const ok = await pullRemote();
       if (cancel) return;
-      const local = getSiteById(id);
-      setServerBacked(false);
-      setSite(local ? normalizeSite(local) : undefined);
+      if (!ok) {
+        const local = getSiteById(id);
+        setServerBacked(false);
+        setSite(local ? normalizeSite(local) : undefined);
+      }
       setReady(true);
     })();
     return () => {
       cancel = true;
     };
-  }, [id]);
+  }, [id, pullRemote]);
+
+  useEffect(() => {
+    if (searchParams.get("click") !== "1") return;
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", `/dashboard/sites/${id}`);
+    }
+    void pullRemote();
+  }, [searchParams, id, pullRemote]);
 
   if (!ready) {
     return (

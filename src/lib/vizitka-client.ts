@@ -1,5 +1,6 @@
 import { getAccessToken } from "./auth-storage";
 import { apiBaseUrl } from "./api-base";
+import type { CreateClickPaymentRes } from "./click-checkout";
 import type { SocialItem, SocialNetwork } from "./store/types";
 
 const base = () => apiBaseUrl();
@@ -42,10 +43,12 @@ export type CreateVizitkaBody = {
   patternId?: string;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "EXPIRED";
   mapLink?: string;
+  /** 3, 6 yoki 12 oy — `expiredAt` shu muddatgacha */
+  subscriptionMonths?: 3 | 6 | 12;
 };
 
 export async function postVizitka(
-  body: CreateVizitkaBody & Record<string, string>,
+  body: CreateVizitkaBody & Record<string, string | number | undefined>,
 ): Promise<{ site: unknown } | null> {
   const t = getAccessToken();
   if (!t) {
@@ -81,8 +84,9 @@ export function buildVizitkaCreatePayload(opts: {
   colorTheme: string;
   pattern: string;
   heroDataUrl?: string;
-}): CreateVizitkaBody & Record<string, string> {
-  const base: CreateVizitkaBody = {
+  subscriptionMonths?: 3 | 6 | 12;
+}): CreateVizitkaBody & Record<string, string | number | undefined> {
+  const basePayload: CreateVizitkaBody = {
     name: opts.name,
     headline: opts.headline,
     category: opts.category,
@@ -97,13 +101,42 @@ export function buildVizitkaCreatePayload(opts: {
     status: "ACTIVE",
     plan: "vizitka",
   };
+  if (opts.subscriptionMonths != null) {
+    basePayload.subscriptionMonths = opts.subscriptionMonths;
+  }
   if (opts.mapsUrl.trim()) {
-    base.mapLink = opts.mapsUrl.trim();
+    basePayload.mapLink = opts.mapsUrl.trim();
   }
   if (opts.heroDataUrl) {
-    base.photoUrl = opts.heroDataUrl;
+    basePayload.photoUrl = opts.heroDataUrl;
   }
-  return { ...base, ...socialToFlat(opts.social) };
+  return { ...basePayload, ...socialToFlat(opts.social) };
+}
+
+export async function createVizitkaSubscriptionPayment(opts: {
+  vizitkaId: string;
+  subscriptionMonths: 3 | 6 | 12;
+  amountSom: number;
+}): Promise<CreateClickPaymentRes> {
+  const t = getAccessToken();
+  if (!t) throw new Error("Kirish talab qilinadi");
+  const r = await fetch(`${base()}/payments/click`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${t}`,
+    },
+    body: JSON.stringify({
+      amount: Math.floor(opts.amountSom),
+      vizitkaId: opts.vizitkaId,
+      subscriptionMonths: opts.subscriptionMonths,
+    }),
+  });
+  if (!r.ok) {
+    const m = await r.text();
+    throw new Error(m || `HTTP ${r.status}`);
+  }
+  return (await r.json()) as CreateClickPaymentRes;
 }
 
 /** JWT bilan bitta vizitka (tahrir sahifasi — bazadan yangi logo va h.k.) */

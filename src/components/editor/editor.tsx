@@ -40,6 +40,7 @@ import { SiteQRCode } from "./qr-code";
 import { SocialEditor } from "./social-editor";
 import { VizitkaTemplateSwitcher } from "./template-switcher";
 import { ColorPicker } from "./color-picker";
+import { VizitkaSubscriptionPanel } from "@/components/dashboard/vizitka-subscription-panel";
 import { cn } from "@/lib/cn";
 
 type SaveState = "saved" | "saving" | "error";
@@ -71,6 +72,7 @@ const VIZITKA_SECTIONS: SectionMeta[] = [
   { id: "design", label: "Dizayn" },
   { id: "general", label: "Umumiy" },
   { id: "contact", label: "Aloqa" },
+  { id: "subscription", label: "Obuna" },
   { id: "social", label: "Ijtimoiy" },
   { id: "qr", label: "QR kod" },
   { id: "danger", label: "Xavfli zona" },
@@ -376,6 +378,18 @@ export function Editor({
                 />
               </Field>
             </Section>
+
+            {!isLanding && serverBackedVizitka ? (
+              <>
+                <Anchor id="subscription" />
+                <Section
+                  title="Obuna va paketlar"
+                  description="Muddatni uzaytirish uchun CLICK orqali to‘lang — balansga qo‘shilmaydi."
+                >
+                  <VizitkaSubscriptionPanel site={draft} />
+                </Section>
+              </>
+            ) : null}
 
             <Anchor id="social" />
             <Section

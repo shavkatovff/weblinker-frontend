@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { EditorLoader } from "@/components/editor/editor-loader";
 
 export default async function EditSitePage({
@@ -6,5 +7,15 @@ export default async function EditSitePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <EditorLoader id={id} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-64px)] items-center justify-center text-sm text-neutral-500">
+          Yuklanmoqda...
+        </div>
+      }
+    >
+      <EditorLoader id={id} />
+    </Suspense>
+  );
 }

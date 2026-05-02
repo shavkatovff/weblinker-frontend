@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { AdminAlert, AdminCard, AdminPageHeader } from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
 
 type UserRow = {
@@ -21,8 +22,7 @@ type UserRow = {
 
 export default function AdminUserDetailPage() {
   const params = useParams();
-  const id =
-    typeof params.id === "string" ? parseInt(params.id, 10) : NaN;
+  const id = typeof params.id === "string" ? parseInt(params.id, 10) : NaN;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,9 +35,7 @@ export default function AdminUserDetailPage() {
     let c = true;
     void (async () => {
       try {
-        const r = await api<{ user: UserRow }>(
-          `/api/admin/users/${id}`,
-        );
+        const r = await api<{ user: UserRow }>(`/api/admin/users/${id}`);
         if (c) {
           setUser(r.user);
           setBalanceInput(String(r.user.balance));
@@ -79,72 +77,81 @@ export default function AdminUserDetailPage() {
     }
   }
 
+  const inp =
+    "mt-1.5 h-11 w-full max-w-xs rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20";
+
   if (!Number.isFinite(id)) {
-    return <p className="text-sm text-red-700">Noto‘g‘ri ID</p>;
+    return (
+      <AdminAlert>
+        Noto‘g‘ri foydalanuvchi ID.
+      </AdminAlert>
+    );
   }
-  if (loading) return <p className="text-sm text-neutral-500">Yuklanmoqda…</p>;
-  if (err && !user) return <p className="text-sm text-red-700">{err}</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader title="Foydalanuvchi" description="Ma’lumotlar yuklanmoqda…" />
+        <div className="h-32 animate-pulse rounded-2xl bg-zinc-100" />
+      </div>
+    );
+  }
+  if (err && !user) return <AdminAlert>{err}</AdminAlert>;
   if (!user) return null;
 
-  const inp =
-    "mt-1 h-10 w-full max-w-xs rounded-lg border border-neutral-200 px-3 text-sm outline-none focus:border-black";
-
   return (
-    <div className="mx-auto max-w-xl">
-      <Link href="/admin/users" className="text-sm text-neutral-600 hover:text-black">
-        ← Foydalanuvchilar
-      </Link>
-      <h1 className="mt-4 text-2xl font-semibold tracking-tight text-black">
-        Foydalanuvchi
-      </h1>
-      {err ? <p className="mt-2 text-sm text-red-700">{err}</p> : null}
+    <div className="mx-auto max-w-xl space-y-10">
+      <div>
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-800 hover:text-teal-950"
+        >
+          <span aria-hidden>←</span> Foydalanuvchilar ro‘yxati
+        </Link>
+        <AdminPageHeader
+          title={user.fullName ?? user.number}
+          description={`ID ${user.id} · ${user.number}`}
+        />
+      </div>
 
-      <dl className="mt-8 space-y-4 text-sm">
-        <div>
-          <dt className="font-medium text-neutral-500">ID</dt>
-          <dd className="mt-0.5 font-mono">{user.id}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">publicId</dt>
-          <dd className="mt-0.5 font-mono text-xs break-all">{user.publicId}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Telefon</dt>
-          <dd className="mt-0.5">{user.number}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Ism</dt>
-          <dd className="mt-0.5">{user.fullName ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Username</dt>
-          <dd className="mt-0.5">{user.username ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Telegram ID</dt>
-          <dd className="mt-0.5 font-mono">{user.telegramId ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Ro‘yxatdan</dt>
-          <dd className="mt-0.5 text-neutral-700">
-            {new Date(user.createdAt).toLocaleString("uz-UZ")}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-medium text-neutral-500">Vizitkalar / to‘lovlar</dt>
-          <dd className="mt-0.5">
-            {user.vizitkaCount} / {user.paymentCount}
-          </dd>
-        </div>
-      </dl>
+      {err ? <AdminAlert>{err}</AdminAlert> : null}
 
-      <div className="mt-10 rounded-2xl border border-[color:var(--border)] bg-white p-5">
-        <h2 className="text-sm font-semibold text-black">Balansni o‘zgartirish</h2>
-        <p className="mt-1 text-xs text-neutral-500">
-          Yangi qiymat so‘mda, butun son.
-        </p>
-        <label className="mt-4 block text-sm">
-          <span className="font-medium text-neutral-700">Balans (so‘m)</span>
+      <AdminCard>
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Profil
+        </h2>
+        <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-medium text-zinc-500">publicId</dt>
+            <dd className="mt-1 break-all font-mono text-xs text-zinc-900">{user.publicId}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-zinc-500">Username</dt>
+            <dd className="mt-1 text-zinc-900">{user.username ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-zinc-500">Telegram ID</dt>
+            <dd className="mt-1 font-mono text-zinc-900">{user.telegramId ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-zinc-500">Ro‘yxatdan</dt>
+            <dd className="mt-1 text-zinc-800">
+              {new Date(user.createdAt).toLocaleString("uz-UZ")}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-medium text-zinc-500">Vizitkalar / to‘lovlar</dt>
+            <dd className="mt-1 font-semibold tabular-nums text-zinc-900">
+              {user.vizitkaCount} / {user.paymentCount}
+            </dd>
+          </div>
+        </dl>
+      </AdminCard>
+
+      <AdminCard>
+        <h2 className="text-sm font-semibold text-zinc-900">Balansni o‘zgartirish</h2>
+        <p className="mt-1 text-xs text-zinc-500">Qiymat so‘mda, butun son.</p>
+        <label className="mt-5 block text-sm">
+          <span className="font-medium text-zinc-700">Balans (so‘m)</span>
           <input
             type="number"
             min={0}
@@ -154,12 +161,12 @@ export default function AdminUserDetailPage() {
             onChange={(e) => setBalanceInput(e.target.value)}
           />
         </label>
-        <div className="mt-4">
+        <div className="mt-5">
           <Button type="button" onClick={() => void saveBalance()} disabled={saving}>
             {saving ? "Saqlanmoqda…" : "Balansni saqlash"}
           </Button>
         </div>
-      </div>
+      </AdminCard>
     </div>
   );
 }

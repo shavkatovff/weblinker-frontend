@@ -12,6 +12,7 @@ import {
   suggestSlug,
 } from "@/lib/store/store";
 import { buildVizitkaCreatePayload, postVizitka } from "@/lib/vizitka-client";
+import { formatSom, PACKAGE_PRICE_BY_MONTHS, VIZITKA_PACKAGES } from "@/lib/vizitka-packages";
 import {
   COLOR_THEMES,
   ColorThemeId,
@@ -107,6 +108,8 @@ export function CreateSiteForm() {
   const [heroImage, setHeroImage] = useState<SiteImage | undefined>();
 
   const [submitting, setSubmitting] = useState(false);
+  /** Vizitka uchun tanlangan obuna (oy) — paket bosqichidan keyin */
+  const [vizitkaMonths, setVizitkaMonths] = useState<3 | 6 | 12 | null>(null);
 
   useEffect(() => {
     setReady(true);
@@ -148,6 +151,7 @@ export function CreateSiteForm() {
           colorTheme,
           pattern,
           heroDataUrl: heroImage?.dataUrl,
+          subscriptionMonths: vizitkaMonths ?? undefined,
         });
         try {
           const res = await postVizitka(payload);
@@ -234,20 +238,48 @@ export function CreateSiteForm() {
     );
   }
 
+  if (siteType === "vizitka" && vizitkaMonths === null) {
+    return (
+      <div className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
+        <VizitkaPackagePicker
+          onBack={() => {
+            setSiteType(null);
+            setStep(1);
+          }}
+          onSelect={(m) => {
+            setVizitkaMonths(m);
+            setStep(1);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs text-neutral-500">
-          Tarif:{" "}
-          <span className="font-semibold text-black">
-            {siteType === "vizitka" ? "Vizitka" : "Landing"}
-          </span>
-        </p>
+        <div>
+          <p className="text-xs text-neutral-500">
+            Tarif:{" "}
+            <span className="font-semibold text-black">
+              {siteType === "vizitka" ? "Vizitka" : "Landing"}
+            </span>
+          </p>
+          {siteType === "vizitka" && vizitkaMonths != null ? (
+            <p className="mt-0.5 text-[11px] text-neutral-600">
+              {vizitkaMonths} oy — {formatSom(PACKAGE_PRICE_BY_MONTHS[vizitkaMonths])}
+            </p>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={() => {
-            setSiteType(null);
             setStep(1);
+            if (siteType === "vizitka") {
+              setVizitkaMonths(null);
+              return;
+            }
+            setSiteType(null);
           }}
           className="text-xs font-medium text-black underline underline-offset-4"
         >
@@ -329,6 +361,73 @@ export function CreateSiteForm() {
   );
 }
 
+function VizitkaPackagePicker({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void;
+  onSelect: (months: 3 | 6 | 12) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-8 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+          Obuna muddatini tanlang
+        </h2>
+        <p className="mt-2 text-sm text-neutral-600">
+          Keyin ham tahrirchi orqali muddatni uzaytirasiz. Hozir tanlov —{" "}
+          <strong className="font-medium text-neutral-800">tugash sanasiga</strong> qo‘shiladi.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {VIZITKA_PACKAGES.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onSelect(p.months)}
+            className={cn(
+              "group relative flex flex-col gap-3 rounded-2xl border p-6 text-left transition-all",
+              p.recommended
+                ? "border-2 border-black bg-white shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)]"
+                : "border border-[color:var(--border)] bg-white hover:border-black",
+            )}
+          >
+            {p.recommended ? (
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                Tavsiya
+              </span>
+            ) : null}
+            <div className="mt-1">
+              <p className="text-lg font-semibold text-black">{p.title}</p>
+              <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                {formatSom(p.priceSom)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">{p.subtitle}</p>
+              {p.hint ? (
+                <p className="mt-2 text-[11px] text-neutral-500">{p.hint}</p>
+              ) : null}
+            </div>
+            <span className="mt-auto pt-2 text-sm font-semibold text-black">
+              Tanlash →
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-10 flex justify-center">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-black"
+        >
+          ← Sayt turini qayta tanlash
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
   return (
     <div>
@@ -344,8 +443,8 @@ function TypePicker({ onPick }: { onPick: (type: SiteType) => void }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TypeCard
           title="Vizitka"
-          price="27 000 so'm / oy"
-          description="Bir ekranli biznes kartasi — kontaktlar, ijtimoiy tarmoq linklari, manzil."
+          price="39 000 so'm dan · 3 paket"
+          description="Bir ekranli biznes kartasi — kontaktlar, ijtimoiy tarmoq linklari, manzil. Obuna muddatini tanlaysiz."
           features={[
             "1 ekranli sayt",
             "4 ta joylashuv · 8 ta rang",

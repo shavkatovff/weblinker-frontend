@@ -6,8 +6,26 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  extendSubscriptionExpiry,
+  parseVizitkaSubscriptionMerchantId,
+  VIZITKA_SUBSCRIPTION_PRICE_SOM,
+} from '../vizitka/subscription';
 import { checkCompleteSign, checkPrepareSign } from './click-sign';
+
+const MERCHANT_ALNUM = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+/** CLICK uchun noyob, bashorat qilinmaydigan `merchant_trans_id` */
+function newRandomMerchantTransId(length = 22): string {
+  const buf = randomBytes(length);
+  let s = '';
+  for (let i = 0; i < length; i++) {
+    s += MERCHANT_ALNUM[buf[i]! % MERCHANT_ALNUM.length]!;
+  }
+  return s;
+}
 
 function bodyRecord(body: unknown): Record<string, unknown> {
   if (body && typeof body === 'object' && !Array.isArray(body)) {
@@ -81,11 +99,34 @@ export class PaymentService {
   }
 
 
-  async createClickPayment(userId: number, amountSom: number) {
+  async createClickPayment(
+    userId: number,
+    amountSom: number,
+    opts?: { vizitkaId?: string; subscriptionMonths?: 3 | 6 | 12 },
+  ) {
     const amount = this.assertAmountSom(amountSom);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+
+    const hasViz = opts?.vizitkaId != null;
+    const hasMo = opts?.subscriptionMonths != null;
+    if (hasViz !== hasMo) {
+      throw new BadRequestException('vizitkaId va subscriptionMonths birga yuborilishi kerak');
+    }
+
+    if (hasViz && hasMo) {
+      const expected = VIZITKA_SUBSCRIPTION_PRICE_SOM[opts.subscriptionMonths!];
+      if (amount !== expected) {
+        throw new BadRequestException('Summa tanlangan paket narxi bilan mos emas');
+      }
+      const viz = await this.prisma.vizitka.findFirst({
+        where: { id: opts.vizitkaId, ownerPublicId: user.publicId },
+      });
+      if (!viz) {
+        throw new NotFoundException('Vizitka topilmadi');
+      }
     }
 
     const serviceIdRaw = this.config.get<string>('CLICK_SERVICE_ID')?.trim();
@@ -102,7 +143,10 @@ export class PaymentService {
       throw new BadRequestException('CLICK_SERVICE_ID yoki CLICK_MERCHANT_ID raqam emas');
     }
 
-    const merchantTransId = `balance_${userId}_${Date.now()}`;
+    const merchantTransId =
+      hasViz && hasMo
+        ? `vxt|${opts!.vizitkaId}|${opts!.subscriptionMonths}|${userId}|${newRandomMerchantTransId(16)}`
+        : newRandomMerchantTransId(22);
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -265,6 +309,28 @@ export class PaymentService {
       return { error: -9, error_note: 'Transaction cancelled' };
     }
 
+    const subMeta = parseVizitkaSubscriptionMerchantId(merchantTransId);
+    if (subMeta) {
+      if (subMeta.userId !== payment.userId) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+      if (payment.amount !== VIZITKA_SUBSCRIPTION_PRICE_SOM[subMeta.months]) {
+        return { error: -2, error_note: 'Incorrect parameter amount' };
+      }
+      const owner = await this.prisma.user.findUnique({
+        where: { id: payment.userId },
+      });
+      if (!owner) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+      const vizCheck = await this.prisma.vizitka.findFirst({
+        where: { id: subMeta.vizitkaId, ownerPublicId: owner.publicId },
+      });
+      if (!vizCheck) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+    }
+
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const freshPayment = await tx.payment.findUnique({
@@ -273,6 +339,40 @@ export class PaymentService {
 
         if (!freshPayment || freshPayment.status === 'PAID') {
           return freshPayment;
+        }
+
+        const meta = parseVizitkaSubscriptionMerchantId(freshPayment.merchantTransId);
+        const now = new Date();
+
+        if (meta) {
+          const userRow = await tx.user.findUnique({
+            where: { id: freshPayment.userId },
+          });
+          if (!userRow) {
+            throw new Error('NO_USER');
+          }
+          const viz = await tx.vizitka.findFirst({
+            where: { id: meta.vizitkaId, ownerPublicId: userRow.publicId },
+          });
+          if (!viz) {
+            throw new Error('NO_VIZ');
+          }
+          const nextEnd = extendSubscriptionExpiry(viz.expiredAt, meta.months, now);
+          await tx.vizitka.update({
+            where: { id: viz.id },
+            data: { expiredAt: nextEnd },
+          });
+
+          return tx.payment.update({
+            where: { id: freshPayment.id },
+            data: {
+              status: 'PAID',
+              paidAt: now,
+              clickTransId,
+              clickPaydocId: String(data.click_paydoc_id ?? ''),
+              merchantConfirmId: freshPayment.id,
+            },
+          });
         }
 
         const incrementSom = new Prisma.Decimal(freshPayment.amount);

@@ -4,43 +4,21 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-
-type Me = { user: { balance: number } };
-
-type CreateClickPaymentRes = {
-  paymentId: number;
-  merchantTransId: string;
-  amount: number;
-  amountSom: number;
-  serviceId: number;
-  merchantId: number;
-  merchantUserId: string;
-};
+import {
+  buildClickPayUrl,
+  type CreateClickPaymentRes,
+} from "@/lib/click-checkout";
 
 const PRESET_SOMS = [10_000, 25_000, 50_000, 100_000] as const;
 const MIN_SOM = 1000;
+
+type Me = { user: { balance: number } };
 
 /**
  * Rasmiy: https://my.click.uz/services/pay
  * (O‘qituvchi loyihadagi kabi: service_id, merchant_id, amount, transaction_param, return_url;
  * karta turi — Click o‘z sahifasida tanlanadi, `card_type` yuborilmaydi.)
  */
-function buildClickPayUrl(
-  p: CreateClickPaymentRes,
-  returnUrl: string,
-): string {
-  const amount = p.amountSom.toFixed(2);
-  const q = new URLSearchParams({
-    service_id: String(p.serviceId),
-    merchant_id: String(p.merchantId),
-    merchant_user_id: p.merchantUserId,
-    amount,
-    transaction_param: p.merchantTransId,
-    return_url: returnUrl,
-  });
-  return `https://my.click.uz/services/pay?${q.toString()}`;
-}
-
 export function ClickTopUpPanel() {
   const [amountSom, setAmountSom] = useState(10_000);
   const [loading, setLoading] = useState(false);

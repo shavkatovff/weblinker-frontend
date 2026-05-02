@@ -1,4 +1,16 @@
-import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateIf,
+} from "class-validator";
 
 const STATUSES = ["DRAFT", "ACTIVE", "PAUSED", "EXPIRED"] as const;
 
@@ -36,4 +48,17 @@ export class AdminUpdateVizitkaDto {
   @IsOptional() @IsString() threadsLink?: string;
   @IsOptional() @IsString() whatsappLink?: string;
   @IsOptional() @IsString() websaytLink?: string;
+
+  /** Joriy tugash sanasidan (yoki hozirdan) shuncha kun qo‘shiladi */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  extendByDays?: number;
+
+  /** Obuna tugashi (ISO 8601). `null` — cheksiz / sanasiz */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsDateString()
+  expiredAt?: string | null;
 }
