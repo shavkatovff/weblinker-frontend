@@ -1,9 +1,9 @@
 import { cn } from "@/lib/cn";
 
 type Props = {
-  /** Matn manzili — qidiruv uchun */
+  /** Faktik manzil matni — xarita iframe ko‘rinishi uchun (maskali ko‘rsatish) */
   address: string;
-  /** To'g'ridan-to'g'ri xarita havolasi (Google / Yandex) — embed va ochish uchun */
+  /** To‘liq xarita sahifasi havolasi — ustiga bosilganda ochiladi (ixtiyoriy) */
   mapsUrl?: string;
   className?: string;
   height?: number;
@@ -14,8 +14,9 @@ type Props = {
 const COORD_IN_PATH = /@(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/;
 
 /**
- * Brauzerda iframe uchun Google Maps embed src.
- * `mapsUrl` bo'lsa — koordinata / embed / to'liq havoladan foydalanadi, bo'lmasa `address` bo'yicha qidiruv.
+ * Google Maps embed src.
+ * Ko‘rinish: **manzil** bo‘lsa — avvalo shu matn bo‘yicha qidiruv (faktik joy).
+ * Manzil bo‘lmasa — `mapsUrl` dan koordinata / havola (oldingi mantiq).
  */
 export function buildMapsEmbedSrc(
   mapsUrl: string | undefined,
@@ -23,6 +24,10 @@ export function buildMapsEmbedSrc(
 ): string | null {
   const addr = address.trim();
   const raw = mapsUrl?.trim() ?? "";
+
+  if (addr) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&hl=uz&z=15&output=embed`;
+  }
 
   if (raw) {
     const coordM = raw.match(COORD_IN_PATH);
@@ -69,11 +74,10 @@ export function buildMapsEmbedSrc(
     }
   }
 
-  if (!addr) return null;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(addr)}&hl=uz&z=15&output=embed`;
+  return null;
 }
 
-/** Xarita ustini bosganda ochiladigan havola */
+/** Xarita ustini bosganda: avvalo `mapsUrl`, bo‘lmasa manzil bo‘yicha qidiruv */
 export function externalMapLink(
   mapsUrl: string | undefined,
   address: string,
@@ -134,8 +138,16 @@ export function MapEmbed({
           target="_blank"
           rel="noopener noreferrer"
           className="absolute inset-0 z-10 outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-black/25"
-          aria-label="Xaritani to'liq ochish"
-          title="Xaritani brauzerda ochish"
+          aria-label={
+            mapsUrl?.trim()
+              ? "Pastdagi xarita havolasini ochish"
+              : "Manzil bo‘yicha xaritani ochish"
+          }
+          title={
+            mapsUrl?.trim()
+              ? "To‘liq xarita (pastdagi havola)"
+              : "Google xarita — manzil bo‘yicha"
+          }
         />
       ) : null}
     </div>

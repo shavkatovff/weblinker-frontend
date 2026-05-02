@@ -33,15 +33,22 @@ export function EditorLoader({ id }: { id: string }) {
 
   useEffect(() => {
     let cancel = false;
-    (async () => {
+    const local = getSiteById(id);
+    if (local) {
+      setSite(normalizeSite(local));
+      setReady(true);
+      setServerBacked(false);
+    }
+    void (async () => {
       const ok = await pullRemote();
       if (cancel) return;
-      if (!ok) {
-        const local = getSiteById(id);
-        setServerBacked(false);
-        setSite(local ? normalizeSite(local) : undefined);
+      if (ok) {
+        setServerBacked(true);
+        setReady(true);
+      } else if (!local) {
+        setSite(undefined);
+        setReady(true);
       }
-      setReady(true);
     })();
     return () => {
       cancel = true;

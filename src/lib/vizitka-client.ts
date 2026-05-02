@@ -183,6 +183,29 @@ export async function uploadVizitkaLogo(
   return (await r.json()) as { site: unknown };
 }
 
+export async function uploadVizitkaPhoto(
+  vizitkaId: string,
+  file: File,
+): Promise<{ site: unknown }> {
+  const t = getAccessToken();
+  if (!t) throw new Error("Kirish talab qilinadi");
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(
+    `${base()}/vizitka/${encodeURIComponent(vizitkaId)}/photo`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}` },
+      body: fd,
+    },
+  );
+  if (!r.ok) {
+    const m = await r.text();
+    throw new Error(m || `HTTP ${r.status}`);
+  }
+  return (await r.json()) as { site: unknown };
+}
+
 export async function patchVizitka(
   id: string,
   body: Record<string, unknown>,

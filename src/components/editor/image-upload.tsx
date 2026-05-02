@@ -7,7 +7,11 @@ import {
   fileToSiteImage,
   formatBytes,
 } from "@/lib/image-utils";
-import { patchVizitka, uploadVizitkaLogo } from "@/lib/vizitka-client";
+import {
+  patchVizitka,
+  uploadVizitkaLogo,
+  uploadVizitkaPhoto,
+} from "@/lib/vizitka-client";
 import { normalizeSite } from "@/lib/store/normalize";
 import { saveSite } from "@/lib/store/store";
 import { cn } from "@/lib/cn";
@@ -20,6 +24,8 @@ type Props = {
   aspect?: "square" | "wide";
   /** Server: `api/uploads/logos` ga yuklab, `vizitkas.logo_url` ni yangilaydi */
   serverLogoUpload?: { vizitkaId: string };
+  /** Server: `api/uploads/photos` ga hero yuklab, `vizitkas.photo_url` ni yangilaydi */
+  serverHeroUpload?: { vizitkaId: string };
   /** Server javobidan keyin `draft`ni to‘liq yangilash */
   onServerSync?: (site: UnknownSite) => void;
 };
@@ -31,6 +37,7 @@ export function ImageUpload({
   onChange,
   aspect = "wide",
   serverLogoUpload,
+  serverHeroUpload,
   onServerSync,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +56,28 @@ export function ImageUpload({
     }
     if (file.size > MAX_IMAGE_BYTES) {
       setError(`Rasm hajmi ${formatBytes(MAX_IMAGE_BYTES)} dan oshmasligi kerak`);
+      return;
+    }
+    if (serverHeroUpload) {
+      setUploading(true);
+      setError(null);
+      try {
+        const res = await uploadVizitkaPhoto(serverHeroUpload.vizitkaId, file);
+        const full = normalizeSite(res.site as UnknownSite);
+        saveSite(full);
+        onServerSync?.(full);
+        const hero = full.content.heroImage as SiteImage | undefined;
+        if (hero) {
+          onChange(hero);
+        } else {
+          setError("Javobda hero kelmadi");
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Yuklashda xato");
+      } finally {
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
+      }
       return;
     }
     if (serverLogoUpload) {
@@ -83,6 +112,22 @@ export function ImageUpload({
 
   const onRemove = async () => {
     setError(null);
+    if (serverHeroUpload) {
+      setUploading(true);
+      try {
+        const res = await patchVizitka(serverHeroUpload.vizitkaId, { photoUrl: "" });
+        const next = normalizeSite(res.site as UnknownSite);
+        saveSite(next);
+        onServerSync?.(next);
+        onChange(undefined);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "O‘chirishda xato");
+      } finally {
+        setUploading(false);
+      }
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     if (serverLogoUpload) {
       setUploading(true);
       try {

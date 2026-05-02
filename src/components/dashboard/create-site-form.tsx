@@ -14,6 +14,8 @@ import {
 import {
   buildVizitkaCreatePayload,
   postVizitka,
+  uploadVizitkaLogo,
+  uploadVizitkaPhoto,
 } from "@/lib/vizitka-client";
 import { api, ApiError } from "@/lib/api";
 import {
@@ -46,6 +48,8 @@ import {
   getColorTheme,
 } from "@/lib/store/types";
 import { defaultVizitkaContent, deriveInitials } from "@/lib/store/defaults";
+import { normalizeSite } from "@/lib/store/normalize";
+import { dataUrlToFile } from "@/lib/image-utils";
 import { VizitkaTemplate } from "@/components/sites/vizitka-template";
 import { MapEmbed } from "@/components/sites/map-embed";
 import { ImageUpload } from "@/components/editor/image-upload";
@@ -57,6 +61,20 @@ import { PatternPicker } from "@/components/editor/pattern-picker";
 import { SocialEditor } from "@/components/editor/social-editor";
 
 type Step = 1 | 2 | 3;
+
+type SiteCreatedSuccessState = {
+  siteId: string;
+  slug: string;
+  businessName: string;
+  uploadWarning?: string | null;
+};
+
+function businessNameFromSite(site: UnknownSite): string {
+  return (
+    site.content.businessName?.trim() ||
+    site.slug
+  );
+}
 
 const RESERVED_SLUGS = new Set([
   "dashboard",
@@ -136,6 +154,7 @@ export function CreateSiteForm() {
   /** Vizitka: bepul kunlar va paket narxlari API dan */
   const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
   const [vizitkaTier, setVizitkaTier] = useState<"free" | 3 | 6 | 12 | null>(null);
+  const [siteCreated, setSiteCreated] = useState<SiteCreatedSuccessState | null>(null);
 
   const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
 
@@ -172,6 +191,30 @@ export function CreateSiteForm() {
 
   const canNextFromStep1 =
     businessName.trim().length >= 2 && normalizedSlug.length >= 3 && !slugError;
+
+  const resetCreateFlow = useCallback(() => {
+    setSiteCreated(null);
+    setSiteType(null);
+    setStep(1);
+    setBusinessName("");
+    setSlug("");
+    setSlugTouched(false);
+    setCategory("");
+    setVizitkaTemplateId("minimal");
+    setColorTheme("mono");
+    setPattern("none");
+    setPhone("");
+    setAddress("");
+    setHoursLine("Du–Sh: 09:00 – 20:00");
+    setTagline("");
+    setDescription("");
+    setSocial([]);
+    setMapsUrl("");
+    setLogoImage(undefined);
+    setHeroImage(undefined);
+    setFinishError(null);
+    setVizitkaTier(null);
+  }, []);
 
   const handleVizitkaTierSelect = useCallback(
     async (tier: "free" | 3 | 6 | 12) => {
@@ -240,7 +283,6 @@ export function CreateSiteForm() {
           templateId: vizitkaTemplateId,
           colorTheme,
           pattern,
-          heroDataUrl: heroImage?.dataUrl,
           subscriptionMonths:
             vizitkaTier !== null && vizitkaTier !== "free"
               ? vizitkaTier
@@ -249,9 +291,43 @@ export function CreateSiteForm() {
         try {
           const res = await postVizitka(payload);
           if (res?.site) {
-            saveSite(res.site as UnknownSite);
-            const sid = (res.site as { id: string }).id;
-            router.push(`/dashboard/sites/${sid}`);
+            let normalized = normalizeSite(res.site as UnknownSite);
+            const sid = normalized.id;
+            try {
+              if (heroImage?.dataUrl?.startsWith("data:")) {
+                const hf = await dataUrlToFile(
+                  heroImage.dataUrl,
+                  heroImage.name || "hero.jpg",
+                );
+                const up = await uploadVizitkaPhoto(sid, hf);
+                normalized = normalizeSite(up.site as UnknownSite);
+              }
+              if (logoImage?.dataUrl?.startsWith("data:")) {
+                const lf = await dataUrlToFile(
+                  logoImage.dataUrl,
+                  logoImage.name || "logo.jpg",
+                );
+                const up = await uploadVizitkaLogo(sid, lf);
+                normalized = normalizeSite(up.site as UnknownSite);
+              }
+            } catch (uploadErr) {
+              const warn =
+                uploadErr instanceof Error ? uploadErr.message : "Rasm yuklashda xato";
+              saveSite(normalized);
+              setSiteCreated({
+                siteId: sid,
+                slug: normalized.slug,
+                businessName: businessNameFromSite(normalized),
+                uploadWarning: warn,
+              });
+              return;
+            }
+            saveSite(normalized);
+            setSiteCreated({
+              siteId: sid,
+              slug: normalized.slug,
+              businessName: businessNameFromSite(normalized),
+            });
             return;
           }
           setFinishError("Server javob bermadi. Qayta urinib ko‘ring.");
@@ -282,7 +358,12 @@ export function CreateSiteForm() {
           pattern,
         },
       });
-      router.push(`/dashboard/sites/${site.id}`);
+      setSiteCreated({
+        siteId: site.id,
+        slug: site.slug,
+        businessName: businessNameFromSite(site),
+      });
+      return;
     } finally {
       setSubmitting(false);
     }
@@ -351,6 +432,17 @@ export function CreateSiteForm() {
             setStep(1);
           }}
           onSelectTier={handleVizitkaTierSelect}
+        />
+      </div>
+    );
+  }
+
+  if (siteCreated) {
+    return (
+      <div className="mx-auto max-w-lg px-5 py-10 lg:px-10">
+        <SiteCreatedSuccess
+          state={siteCreated}
+          onCreateAnother={resetCreateFlow}
         />
       </div>
     );
@@ -1258,7 +1350,7 @@ function StepThree({
 
           <Field
             label="Manzil"
-            hint="Faktik joy — ko'cha, shahar (xarita havolasi keyingi maydonda)"
+            hint="Ko‘cha, shahar — xarita kartochkasi shu matn bo‘yicha ko‘rinadi"
           >
             <TextInput
               value={address}
@@ -1290,7 +1382,7 @@ function StepThree({
 
           <Field
             label="Xarita havolasi (ixtiyoriy)"
-            hint="Google yoki Yandex — aniq nuqta; bo'sh bo'lsa yuqoridagi manzil bo'yicha xarita"
+            hint="To‘liq Google/Yandex sahifa havolasi — kartochka ustiga bosganda shu yerga ochiladi (yuqoridagi manzil faqat ko‘rinish uchun)"
           >
             <TextInput
               value={mapsUrl}
@@ -1302,7 +1394,7 @@ function StepThree({
           {(address.trim() || mapsUrl.trim()) && siteType === "vizitka" ? (
             <div className="space-y-2 rounded-xl border border-[color:var(--border)] bg-neutral-50/80 p-4">
               <p className="text-[11px] font-medium text-neutral-600">
-                Xarita (bosilsa — havolada ochiladi)
+                Oldindan ko‘rinish — manzil bo‘yicha; bosilsa pastdagi havola ochiladi (bo‘lsa)
               </p>
               <MapEmbed
                 address={address}
@@ -1358,6 +1450,90 @@ function StepThree({
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+function SiteCreatedSuccess({
+  state,
+  onCreateAnother,
+}: {
+  state: SiteCreatedSuccessState;
+  onCreateAnother: () => void;
+}) {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "";
+  const publicPath = `/${state.slug}`;
+  const publicHref = `${origin}${publicPath}`;
+
+  return (
+    <div className="rounded-2xl border border-[color:var(--border)] bg-white p-8 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M20 6L9 17l-5-5"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <h2 className="mt-5 text-xl font-semibold tracking-tight text-black">
+          Sayt muvaffaqiyatli yaratildi
+        </h2>
+        <p className="mt-1.5 text-sm text-neutral-600">{state.businessName}</p>
+        {state.uploadWarning ? (
+          <p className="mt-4 max-w-md rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            {state.uploadWarning}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="mt-8 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+          Jamoat havolasi
+        </p>
+        <a
+          href={publicHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block break-all text-sm font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
+        >
+          {publicHref}
+        </a>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+        <Button
+          href={publicPath}
+          target="_blank"
+          rel="noopener noreferrer"
+          size="lg"
+          className="min-w-[160px]"
+        >
+          Saytni ko&apos;rish
+        </Button>
+        <Button
+          href={`/dashboard/sites/${state.siteId}`}
+          variant="secondary"
+          size="lg"
+          className="min-w-[160px]"
+        >
+          Tahrirlash
+        </Button>
+      </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        size="lg"
+        className="mt-4 w-full border border-dashed border-neutral-300"
+        onClick={onCreateAnother}
+      >
+        Yana sayt yaratish
+      </Button>
     </div>
   );
 }

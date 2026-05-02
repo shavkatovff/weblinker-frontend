@@ -129,6 +129,49 @@ export class VizitkaController {
     return this.svc.saveUploadedLogo(id, req.user.pid, relativeUrl);
   }
 
+  @Post(":id/photo")
+  @UseGuards(JwtAccessGuard)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: 2 * 1024 * 1024 },
+      fileFilter: (_req: Request, file: MulterIncomingFile, cb: MulterFileFilterCb) => {
+        if (!file.mimetype.startsWith("image/")) {
+          cb(new BadRequestException("Faqat rasm fayli"), false);
+          return;
+        }
+        cb(null, true);
+      },
+      storage: diskStorage({
+        destination: (_req: Request, _file: MulterIncomingFile, cb: MulterDestinationCb) => {
+          const dir = join(process.cwd(), "uploads", "photos");
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          cb(null, dir);
+        },
+        filename: (req: Request, file: MulterIncomingFile, cb: MulterFilenameCb) => {
+          const idParam = (req.params as { id?: string })["id"] ?? "photo";
+          const ext = extname(file.originalname || "").toLowerCase();
+          const safe = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext)
+            ? ext
+            : ".jpg";
+          cb(null, `${idParam}-hero-${randomUUID()}${safe}`);
+        },
+      }),
+    }),
+  )
+  async uploadPhoto(
+    @Param("id") id: string,
+    @UploadedFile() file: StoredLogoFile | undefined,
+    @Req() req: { user: { sub: number; pid: string } },
+  ) {
+    if (!file) {
+      throw new BadRequestException("Fayl tanlang");
+    }
+    const relativeUrl = `/uploads/photos/${file.filename}`;
+    return this.svc.saveUploadedPhoto(id, req.user.pid, relativeUrl);
+  }
+
   @Patch(":id")
   @UseGuards(JwtAccessGuard)
   async update(

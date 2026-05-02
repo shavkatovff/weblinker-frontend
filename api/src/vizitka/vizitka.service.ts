@@ -97,10 +97,18 @@ export class VizitkaService {
     push("whatsapp", v.whatsappLink);
     push("website", v.websaytLink);
     const hero = v.photoUrl
-      ? { dataUrl: v.photoUrl, sizeBytes: 0, name: "photo" }
+      ? {
+          dataUrl: v.photoUrl,
+          sizeBytes: 0,
+          name: v.photoUrl.split("/").pop() || "hero",
+        }
       : undefined;
     const logo = v.logoUrl
-      ? { dataUrl: v.logoUrl, sizeBytes: 0, name: "logo" }
+      ? {
+          dataUrl: v.logoUrl,
+          sizeBytes: 0,
+          name: v.logoUrl.split("/").pop() || "logo",
+        }
       : undefined;
     const content = {
       businessName,
@@ -305,6 +313,21 @@ export class VizitkaService {
     const u = await this.prisma.vizitka.update({
       where: { id },
       data: { logoUrl: relativeUrl },
+    });
+    return { site: this.toPublicSiteJson(u) };
+  }
+
+  /** Hero rasm — `/uploads/photos/...` → `photo_url` */
+  async saveUploadedPhoto(id: string, ownerPublicId: string, relativeUrl: string) {
+    const existing = await this.prisma.vizitka.findFirst({
+      where: { id, ownerPublicId },
+    });
+    if (!existing) {
+      throw new NotFoundException("Vizitka topilmadi");
+    }
+    const u = await this.prisma.vizitka.update({
+      where: { id },
+      data: { photoUrl: relativeUrl },
     });
     return { site: this.toPublicSiteJson(u) };
   }

@@ -25,3 +25,14 @@ function readAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+/** Hero/logo yaratishdan keyin serverga multipart yuklash uchun */
+export async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const ext = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+  const safeName = filename.replace(/[^\w.-]/g, "_") || `image.${ext}`;
+  return new File([blob], safeName.includes(".") ? safeName : `${safeName}.${ext}`, {
+    type: blob.type || "image/jpeg",
+  });
+}

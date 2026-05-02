@@ -281,6 +281,19 @@ export function Editor({
                   value={draft.content.heroImage}
                   onChange={updateHeroImage}
                   aspect="wide"
+                  serverHeroUpload={
+                    !isLanding && serverBackedVizitka && draft.type === "vizitka"
+                      ? { vizitkaId: draft.id }
+                      : undefined
+                  }
+                  onServerSync={
+                    !isLanding && serverBackedVizitka && draft.type === "vizitka"
+                      ? (s) => {
+                          setDraft(s);
+                          setSavedAt(new Date(s.updatedAt));
+                        }
+                      : undefined
+                  }
                 />
               ) : null}
 
@@ -364,7 +377,7 @@ export function Editor({
               </Field>
               <Field
                 label="Manzil"
-                hint="Faktik manzil matni — xaritada qidiruv (xarita havolasi alohida)"
+                hint="Ko‘cha, shahar — xarita kartochkasi shu matn bo‘yicha"
               >
                 <TextInput
                   value={draft.content.address}
@@ -380,7 +393,7 @@ export function Editor({
               </Field>
               <Field
                 label="Xarita havolasi (ixtiyoriy)"
-                hint="Google / Yandex — to'g'ri nuqta; bo'sh bo'lsa yuqoridagi manzil bo'yicha avto-xarita"
+                hint="To‘liq sahifa havolasi — kartochka ustiga bosganda shu yerga ochiladi"
               >
                 <TextInput
                   value={draft.content.mapsUrl ?? ""}
@@ -392,7 +405,7 @@ export function Editor({
               (draft.content.address?.trim() || draft.content.mapsUrl?.trim()) ? (
                 <div className="space-y-2">
                   <p className="text-[11px] text-neutral-500">
-                    Xarita oldindan ko&apos;rinish — bosing, to&apos;liq xaritada ochiladi
+                    Ko‘rinish — manzil bo‘yicha; bosilsa pastdagi xarita havolasi ochiladi (bo‘lsa)
                   </p>
                   <MapEmbed
                     address={draft.content.address ?? ""}

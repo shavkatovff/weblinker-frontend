@@ -26,18 +26,7 @@ export function Topbar({ title, breadcrumb, actions }: Props) {
         >
           <MenuIcon open={mobileOpen} />
         </button>
-        <div className="inline-flex min-w-0 items-center gap-2.5 text-left text-[16px] font-semibold tracking-tight text-black">
-          <LogoMark variant="v2" size={24} />
-          <span className="inline-flex min-w-0 items-center gap-1">
-            <span className="truncate">Weblinker</span>
-            <span
-              className="select-none text-[15px] font-normal leading-none text-neutral-400"
-              aria-hidden
-            >
-              {'>'}
-            </span>
-          </span>
-        </div>
+        <LogoMark variant="v2" size={24} />
       </div>
       <div className="flex flex-col gap-4 border-b border-[color:var(--border)] bg-white px-5 py-6 sm:flex-row sm:items-end sm:justify-between lg:px-10">
         <div>
