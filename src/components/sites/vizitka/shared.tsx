@@ -4,7 +4,28 @@ import {
   SocialLinks,
   VizitkaContent,
 } from "@/lib/store/types";
+import { cn } from "@/lib/cn";
 import { buildSocialHref, SocialGlyph } from "../social-icons";
+
+/** Ochiq vizitka saytlarida pastdagi brand — bosh sahifaga */
+export const WEBLINKER_HOMEPAGE = "https://weblinker.uz";
+
+export function WeblinkerBrandLink({ className }: { className?: string }) {
+  return (
+    <a
+      href={WEBLINKER_HOMEPAGE}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "text-[10px] uppercase tracking-[0.2em] text-neutral-400 transition-opacity hover:opacity-80",
+        className,
+      )}
+      aria-label="Weblinker — bosh sahifa"
+    >
+      weblinker.uz
+    </a>
+  );
+}
 
 export function Avatar({
   content,

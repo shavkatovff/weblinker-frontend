@@ -7,14 +7,17 @@ import { ConfigService } from "@nestjs/config";
 import { AdminGuard } from "./admin.guard";
 import { JwtAccessGuard } from "./jwt-access.guard";
 
-function isAdminApiOpen(config: ConfigService): boolean {
-  const v = config.get<string>("ADMIN_API_OPEN")?.trim().toLowerCase();
-  return v === "1" || v === "true" || v === "yes";
+function adminRequiresJwt(config: ConfigService): boolean {
+  const lock = config.get<string>("ADMIN_LOCKDOWN")?.trim().toLowerCase();
+  if (lock === "1" || lock === "true" || lock === "yes") {
+    return true;
+  }
+  return false;
 }
 
 /**
- * `ADMIN_API_OPEN=1` — admin API vaqtincha ochiq (JWT / admin rolini talab qilmaydi).
- * Productionda o‘chiring yoki `ADMIN_PUBLIC_IDS` + JWT ishlating.
+ * Default: admin API ochiq. Faqat `ADMIN_LOCKDOWN=1` bo‘lsa JWT + `ADMIN_PUBLIC_IDS`.
+ * (Eski `ADMIN_API_OPEN` / `ADMIN_AUTH_REQUIRED` endi yopish uchun ishlatilmaydi — chalkashlikni kamaytirish.)
  */
 @Injectable()
 export class AdminApiAccessGuard implements CanActivate {
@@ -25,7 +28,7 @@ export class AdminApiAccessGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    if (isAdminApiOpen(this.config)) {
+    if (!adminRequiresJwt(this.config)) {
       return true;
     }
     this.jwt.canActivate(context);

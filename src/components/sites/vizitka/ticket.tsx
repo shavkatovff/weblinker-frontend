@@ -1,6 +1,6 @@
 import { ColorTheme, VizitkaContent } from "@/lib/store/types";
 import { SocialGlyph, buildSocialHref } from "../social-icons";
-import { telHref } from "./shared";
+import { telHref, WeblinkerBrandLink } from "./shared";
 import { PatternLayer } from "../patterns";
 import { MapEmbed } from "../map-embed";
 
@@ -98,9 +98,7 @@ export function VizitkaTicket({ content, theme }: Props) {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">
             {content.accentInitials}-001
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">
-            weblinker.uz
-          </p>
+          <WeblinkerBrandLink className="font-mono text-[10px] tracking-[0.2em] text-neutral-400" />
         </div>
       </div>
     </div>

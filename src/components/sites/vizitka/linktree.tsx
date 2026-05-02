@@ -1,5 +1,5 @@
 import { ColorTheme, VizitkaContent } from "@/lib/store/types";
-import { Avatar, mapsHref, telHref } from "./shared";
+import { Avatar, mapsHref, telHref, WeblinkerBrandLink } from "./shared";
 import { buildSocialHref, SOCIAL_NETWORKS } from "../social-icons";
 import { PatternLayer } from "../patterns";
 import { MapEmbed } from "../map-embed";
@@ -89,9 +89,7 @@ export function VizitkaLinktree({ content, theme }: Props) {
         ))}
       </div>
 
-      <p className="mt-auto pt-6 text-[10px] uppercase tracking-[0.2em] text-neutral-400">
-        weblinker.uz
-      </p>
+      <WeblinkerBrandLink className="mt-auto pt-6" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { ColorTheme, VizitkaContent } from "@/lib/store/types";
-import { Avatar, SocialRow, telHref } from "./shared";
+import { Avatar, SocialRow, telHref, WeblinkerBrandLink } from "./shared";
 import { PatternLayer } from "../patterns";
 
 type Props = { content: VizitkaContent; theme: ColorTheme };
@@ -42,9 +42,7 @@ export function VizitkaDark({ content, theme }: Props) {
         <SocialRow social={content.social} variant="dark" size="md" />
       </div>
 
-      <p className="mt-auto pt-10 text-[10px] uppercase tracking-[0.25em] text-white/50">
-        weblinker.uz
-      </p>
+      <WeblinkerBrandLink className="mt-auto pt-10 tracking-[0.25em] text-white/50 hover:opacity-90" />
     </div>
   );
 }

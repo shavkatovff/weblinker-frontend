@@ -35,6 +35,9 @@ server {
     listen [::]:80;
     server_name weblinker.uz www.weblinker.uz;
 
+    # 413 Request Entity Too Large: nginx default ~1m. `location /` (Next) va barcha proxy uchun.
+    client_max_body_size 25m;
+
     # Nest API — asosiy domen orqali (api.weblinker.uz DNS shart emas). 443 blokda ham xuddi shu.
     location /auth {
         proxy_pass http://weblinker_api;
@@ -131,6 +134,9 @@ server {
     listen 80;
     listen [::]:80;
     server_name api.weblinker.uz;
+
+    client_max_body_size 25m;
+
     location / {
         proxy_pass http://weblinker_api;
         proxy_http_version 1.1;

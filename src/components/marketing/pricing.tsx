@@ -8,8 +8,10 @@ type Plan = {
   id: string;
   name: string;
   price: number;
-  /** Masalan `dan` yoki `/ oy` */
+  /** Masalan `· 3 oy` yoki `/ oy` */
   priceSuffix: string;
+  /** 3 oylik paket uchun oyiga taxminan */
+  perMonthApproxLine?: string;
   priceNote?: string;
   tagline: string;
   features: string[];
@@ -32,13 +34,16 @@ function formatPrice(value: number) {
 
 export async function Pricing() {
   const pricing = await loadPricing();
-  const vizitkaFrom = pricing.pricesSom["3"];
+  const vizitka3mo = pricing.pricesSom["3"];
+  /** Yuzlikka yaxlitlangan oy narxi (masalan 37 000 → 12 300) */
+  const perMo = Math.round(vizitka3mo / 3 / 100) * 100;
   const plans: Plan[] = [
     {
       id: "vizitka",
       name: "Vizitka",
-      price: vizitkaFrom,
-      priceSuffix: "dan",
+      price: vizitka3mo,
+      priceSuffix: "· 3 oy",
+      perMonthApproxLine: `≈ ${formatPrice(perMo)} so'm/oy`,
       priceNote: "3 oy, 6 oy va 1 yil paketlari",
       tagline: "Bir ekranli biznes kartasi",
       features: [
@@ -119,6 +124,9 @@ function PricingCard({ plan }: { plan: Plan }) {
             so&apos;m {plan.priceSuffix}
           </span>
         </div>
+        {plan.perMonthApproxLine ? (
+          <p className="text-sm font-medium text-neutral-600">{plan.perMonthApproxLine}</p>
+        ) : null}
         {plan.priceNote ? (
           <p className="text-xs text-neutral-500">{plan.priceNote}</p>
         ) : null}

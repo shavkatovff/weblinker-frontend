@@ -1,5 +1,5 @@
 import { ColorTheme, VizitkaContent } from "@/lib/store/types";
-import { Avatar, mapsHref, telHref } from "./shared";
+import { Avatar, mapsHref, telHref, WeblinkerBrandLink } from "./shared";
 import { buildSocialHref, SOCIAL_NETWORKS, SocialGlyph } from "../social-icons";
 import { PatternLayer } from "../patterns";
 import { MapEmbed } from "../map-embed";
@@ -106,9 +106,7 @@ export function VizitkaSocialWall({ content, theme }: Props) {
         ))}
       </div>
 
-      <p className="mt-auto pt-6 text-center text-[10px] uppercase tracking-[0.2em] text-neutral-400">
-        weblinker.uz
-      </p>
+      <WeblinkerBrandLink className="mt-auto block w-full pt-6 text-center" />
     </div>
   );
 }
