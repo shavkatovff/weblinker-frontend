@@ -6,16 +6,12 @@ import {
   ParseIntPipe,
   Patch,
   Query,
-  UseGuards,
 } from "@nestjs/common";
-import { JwtAccessGuard } from "../auth/jwt-access.guard";
-import { AdminGuard } from "./admin.guard";
 import { AdminService } from "./admin.service";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
 
 @Controller("api/admin")
-@UseGuards(JwtAccessGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
