@@ -15,12 +15,29 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
+import type { Request } from "express";
 import { existsSync, mkdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { JwtAccessGuard } from "../auth/jwt-access.guard";
 import { CreateVizitkaDto, UpdateVizitkaBodyDto } from "./dto/create-vizitka.dto";
 import { VizitkaService } from "./vizitka.service";
+
+/** Multer multipart fayl (diskStorage) — Express.Multer merge muammosiz */
+type MulterIncomingFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+};
+
+/** DiskStorage dan keyin Nest `@UploadedFile()` da keladi */
+type StoredLogoFile = MulterIncomingFile & { filename: string };
+
+type MulterDestinationCb = (error: Error | null, destination: string) => void;
+type MulterFilenameCb = (error: Error | null, filename: string) => void;
+type MulterFileFilterCb = (error: Error | null, acceptFile: boolean) => void;
 
 @Controller("vizitka")
 export class VizitkaController {
@@ -64,7 +81,7 @@ export class VizitkaController {
   @UseInterceptors(
     FileInterceptor("file", {
       limits: { fileSize: 2 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
+      fileFilter: (_req: Request, file: MulterIncomingFile, cb: MulterFileFilterCb) => {
         if (!file.mimetype.startsWith("image/")) {
           cb(new BadRequestException("Faqat rasm fayli"), false);
           return;
@@ -72,14 +89,14 @@ export class VizitkaController {
         cb(null, true);
       },
       storage: diskStorage({
-        destination: (_req, _file, cb) => {
+        destination: (_req: Request, _file: MulterIncomingFile, cb: MulterDestinationCb) => {
           const dir = join(process.cwd(), "uploads", "logos");
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }
           cb(null, dir);
         },
-        filename: (req, file, cb) => {
+        filename: (req: Request, file: MulterIncomingFile, cb: MulterFilenameCb) => {
           const idParam = (req.params as { id?: string })["id"] ?? "logo";
           const ext = extname(file.originalname || "").toLowerCase();
           const safe = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext)
@@ -92,7 +109,7 @@ export class VizitkaController {
   )
   async uploadLogo(
     @Param("id") id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: StoredLogoFile | undefined,
     @Req() req: { user: { sub: number; pid: string } },
   ) {
     if (!file) {
