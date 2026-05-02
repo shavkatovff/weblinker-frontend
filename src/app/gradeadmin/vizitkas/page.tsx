@@ -318,7 +318,7 @@ export default function AdminVizitkasPage() {
                   </td>
                   <td className={`${adminTd} text-right text-xs`}>
                     <Link
-                      href={`/admin/vizitkas/${encodeURIComponent(v.id)}`}
+                      href={`/gradeadmin/vizitkas/${encodeURIComponent(v.id)}`}
                       className={linkPrimary}
                     >
                       Tahrir

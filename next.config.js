@@ -32,6 +32,12 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/admin", destination: "/gradeadmin", permanent: false },
+      { source: "/admin/:path*", destination: "/gradeadmin/:path*", permanent: false },
+    ];
+  },
 };
 
 module.exports = nextConfig;

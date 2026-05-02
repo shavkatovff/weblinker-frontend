@@ -100,7 +100,7 @@ export default function AdminPaymentsPage() {
                   ) : null}
                   <div className="mt-1">
                     <Link
-                      href={`/admin/users/${p.user.id}`}
+                      href={`/gradeadmin/users/${p.user.id}`}
                       className="text-xs font-semibold text-teal-800 underline-offset-2 hover:underline"
                     >
                       Profil

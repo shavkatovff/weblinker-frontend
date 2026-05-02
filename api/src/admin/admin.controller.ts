@@ -9,15 +9,14 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { JwtAccessGuard } from "../auth/jwt-access.guard";
-import { AdminGuard } from "../auth/admin.guard";
+import { AdminApiAccessGuard } from "../auth/admin-api-access.guard";
 import { AdminService } from "./admin.service";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
 import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
 
 @Controller("api/admin")
-@UseGuards(JwtAccessGuard, AdminGuard)
+@UseGuards(AdminApiAccessGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 

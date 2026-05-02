@@ -6,15 +6,15 @@ import { cn } from "@/lib/cn";
 
 const NAV = [
   {
-    href: "/admin",
+    href: "/gradeadmin",
     label: "Umumiy",
     icon: IconOverview,
     exact: true as boolean,
   },
-  { href: "/admin/vizitkas", label: "Vizitkalar", icon: IconSites, exact: false },
-  { href: "/admin/users", label: "Foydalanuvchilar", icon: IconUsers, exact: false },
-  { href: "/admin/payments", label: "To‘lovlar", icon: IconPayments, exact: false },
-  { href: "/admin/settings", label: "Sozlamalar", icon: IconSettings, exact: false },
+  { href: "/gradeadmin/vizitkas", label: "Vizitkalar", icon: IconSites, exact: false },
+  { href: "/gradeadmin/users", label: "Foydalanuvchilar", icon: IconUsers, exact: false },
+  { href: "/gradeadmin/payments", label: "To‘lovlar", icon: IconPayments, exact: false },
+  { href: "/gradeadmin/settings", label: "Sozlamalar", icon: IconSettings, exact: false },
 ] as const;
 
 function IconOverview({ className }: { className?: string }) {

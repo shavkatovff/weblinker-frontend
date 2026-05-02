@@ -158,7 +158,7 @@ export default function AdminVizitkaEditPage() {
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <Link
-          href="/admin/vizitkas"
+          href="/gradeadmin/vizitkas"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-800 hover:text-teal-950"
         >
           <span aria-hidden>←</span> Vizitkalar

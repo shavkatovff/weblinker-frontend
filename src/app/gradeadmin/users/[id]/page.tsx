@@ -102,7 +102,7 @@ export default function AdminUserDetailPage() {
     <div className="mx-auto max-w-xl space-y-10">
       <div>
         <Link
-          href="/admin/users"
+          href="/gradeadmin/users"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-800 hover:text-teal-950"
         >
           <span aria-hidden>←</span> Foydalanuvchilar ro‘yxati
