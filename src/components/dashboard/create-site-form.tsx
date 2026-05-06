@@ -33,6 +33,7 @@ import {
   fetchVizitkaPricing,
   type PublicPricing,
 } from "@/lib/vizitka-pricing";
+import { computeClickTopUpNeedSom } from "@/lib/payment-need";
 import { chargeLandingCreatePackage } from "@/lib/landing-client";
 import {
   buildLandingFreePackage,
@@ -249,8 +250,7 @@ export function CreateSiteForm() {
       setTierPayLoading(tier);
       try {
         const me = await api<{ user: { balance: number } }>("/auth/me");
-        const bal = Math.floor(me.user.balance);
-        const need = Math.max(0, price - bal);
+        const need = computeClickTopUpNeedSom(price, me.user.balance);
         if (need === 0) {
           setVizitkaTier(tier);
           setStep(1);
@@ -294,8 +294,7 @@ export function CreateSiteForm() {
       setTierPayLoading(tier);
       try {
         const me = await api<{ user: { balance: number } }>("/auth/me");
-        const bal = Math.floor(me.user.balance);
-        const need = Math.max(0, price - bal);
+        const need = computeClickTopUpNeedSom(price, me.user.balance);
         if (need === 0) {
           setLandingTier(tier);
           setStep(1);
