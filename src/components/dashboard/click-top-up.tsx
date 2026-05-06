@@ -8,6 +8,7 @@ import {
   buildClickPayUrl,
   type CreateClickPaymentRes,
 } from "@/lib/click-checkout";
+import { clickInvoiceAmountSom } from "@/lib/click-invoice-amount";
 
 const PRESET_SOMS = [10_000, 25_000, 50_000, 100_000] as const;
 const MIN_SOM = 1000;
@@ -58,7 +59,7 @@ export function ClickTopUpPanel() {
     try {
       payment = await api<CreateClickPaymentRes>("/payments/click", {
         method: "POST",
-        body: JSON.stringify({ amount: Math.floor(amountSom) }),
+        body: JSON.stringify({ amount: clickInvoiceAmountSom(amountSom) }),
       });
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : "To‘lov yaratishda xato";

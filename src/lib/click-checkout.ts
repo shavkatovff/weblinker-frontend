@@ -1,6 +1,8 @@
 /**
  * CLICK checkout URL — https://my.click.uz/services/pay
  */
+import { clickInvoiceAmountSom } from "./click-invoice-amount";
+
 export type CreateClickPaymentRes = {
   paymentId: number;
   merchantTransId: string;
@@ -15,7 +17,7 @@ export function buildClickPayUrl(
   p: CreateClickPaymentRes,
   returnUrl: string,
 ): string {
-  const amount = p.amountSom.toFixed(2);
+  const amount = clickInvoiceAmountSom(p.amountSom).toFixed(2);
   const q = new URLSearchParams({
     service_id: String(p.serviceId),
     merchant_id: String(p.merchantId),

@@ -1,5 +1,6 @@
 import { getAccessToken } from "./auth-storage";
 import { apiBaseUrl } from "./api-base";
+import { clickInvoiceAmountSom } from "./click-invoice-amount";
 import type { CreateClickPaymentRes } from "./click-checkout";
 import type { SocialItem, SocialNetwork } from "./store/types";
 
@@ -135,7 +136,7 @@ export async function createVizitkaSubscriptionPayment(opts: {
       Authorization: `Bearer ${t}`,
     },
     body: JSON.stringify({
-      amount: Math.floor(opts.amountSom),
+      amount: clickInvoiceAmountSom(opts.amountSom),
       vizitkaId: opts.vizitkaId,
       subscriptionMonths: opts.subscriptionMonths,
     }),
