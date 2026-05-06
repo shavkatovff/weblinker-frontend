@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColorThemeId,
+  FaqItem,
   FeatureIconKind,
   FeatureItem,
   LandingContent,
   LandingTemplateId,
   LandingSectionBlock,
   PatternId,
+  ProcessStepItem,
   ServiceItem,
   SiteImage,
   SocialLinks,
@@ -101,6 +103,32 @@ const LANDING_SECTIONS: SectionMeta[] = [
   { id: "danger", label: "Xavfli zona" },
 ];
 
+const LANDING_SECTIONS_SIMPLE: SectionMeta[] = [
+  { id: "design", label: "Dizayn" },
+  { id: "general", label: "Umumiy" },
+  { id: "contact", label: "Aloqa" },
+  { id: "social", label: "Ijtimoiy" },
+  { id: "hero", label: "Hero" },
+  { id: "sections", label: "Bo‘limlar" },
+  { id: "simple-contact", label: "Ariza matni" },
+  { id: "qr", label: "QR kod" },
+  { id: "danger", label: "Xavfli zona" },
+];
+
+const LANDING_SECTIONS_MARKETING: SectionMeta[] = [
+  { id: "design", label: "Dizayn" },
+  { id: "general", label: "Umumiy" },
+  { id: "contact", label: "Aloqa" },
+  { id: "social", label: "Ijtimoiy" },
+  { id: "hero", label: "Hero" },
+  { id: "services", label: "Xizmatlar" },
+  { id: "process", label: "Jarayon" },
+  { id: "faq", label: "FAQ" },
+  { id: "simple-contact", label: "Ariza matni" },
+  { id: "qr", label: "QR kod" },
+  { id: "danger", label: "Xavfli zona" },
+];
+
 export function Editor({
   initialSite,
   serverBackedVizitka = false,
@@ -181,7 +209,9 @@ export function Editor({
     }
     try {
       const tid =
-        draft.templateId === "default" || draft.templateId === "simple"
+        draft.templateId === "default" ||
+        draft.templateId === "simple" ||
+        draft.templateId === "marketing"
           ? draft.templateId
           : "simple";
       const res = await upsertLanding({
@@ -237,7 +267,13 @@ export function Editor({
   };
 
   const isLanding = draft.type === "landing";
-  const sections = isLanding ? LANDING_SECTIONS : VIZITKA_SECTIONS;
+  const sections = useMemo(() => {
+    if (!isLanding) return VIZITKA_SECTIONS;
+    const tid = draft.templateId;
+    if (tid === "marketing") return LANDING_SECTIONS_MARKETING;
+    if (tid === "simple") return LANDING_SECTIONS_SIMPLE;
+    return LANDING_SECTIONS;
+  }, [isLanding, draft.templateId]);
 
   const templateMeta = VIZITKA_TEMPLATES.find(
     (t) => t.id === draft.templateId,
@@ -304,29 +340,45 @@ export function Editor({
                   </Field>
                 </>
               ) : (
-                <Field label="Shablon" hint="Oddiy — header, 2 ta matn bo‘limi va ariza formasi">
-                  <select
-                    className="h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm outline-none focus:border-black"
-                    value={
-                      draft.templateId === "default" || draft.templateId === "simple"
-                        ? draft.templateId
-                        : "simple"
-                    }
-                    onChange={(e) =>
-                      setDraft((prev) =>
-                        prev.type === "landing"
-                          ? {
-                              ...prev,
-                              templateId: e.target.value as LandingTemplateId,
-                            }
-                          : prev,
-                      )
-                    }
+                <>
+                  <Field
+                    label="Shablon"
+                    hint="Marketing — xizmat kartochkalari, jarayon, FAQ; oddiy — 2 ta matn bo‘limi; to‘liq — barcha bo‘limlar."
                   >
-                    <option value="simple">Oddiy (2 bo‘lim + ariza)</option>
-                    <option value="default">To‘liq (xizmatlar, galereya, …)</option>
-                  </select>
-                </Field>
+                    <select
+                      className="h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm outline-none focus:border-black"
+                      value={
+                        draft.templateId === "default" ||
+                        draft.templateId === "simple" ||
+                        draft.templateId === "marketing"
+                          ? draft.templateId
+                          : "simple"
+                      }
+                      onChange={(e) =>
+                        setDraft((prev) =>
+                          prev.type === "landing"
+                            ? {
+                                ...prev,
+                                templateId: e.target.value as LandingTemplateId,
+                              }
+                            : prev,
+                        )
+                      }
+                    >
+                      <option value="simple">Oddiy (2 bo‘lim + ariza)</option>
+                      <option value="marketing">Marketing (xizmatlar, jarayon, FAQ)</option>
+                      <option value="default">To‘liq (xizmatlar, galereya, …)</option>
+                    </select>
+                  </Field>
+                  {draft.templateId === "marketing" ? (
+                    <Field label="Asosiy rang" hint="Hero gradient va tugmalar">
+                      <ColorPicker
+                        value={(draft.content.colorTheme ?? "mono") as ColorThemeId}
+                        onChange={updateColorTheme}
+                      />
+                    </Field>
+                  ) : null}
+                </>
               )}
 
               {supportsHero ? (
@@ -526,7 +578,7 @@ export function Editor({
         </aside>
 
         <section className="flex min-h-[70vh] min-w-0 flex-col bg-neutral-100 lg:min-h-0">
-          <PreviewToolbar slug={draft.slug} />
+          <PreviewToolbar slug={draft.slug} variant={isLanding ? "landing" : "vizitka"} />
           <div className="flex-1 overflow-y-auto p-4 sm:p-8">
             {isLanding ? (
               <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[color:var(--border)] bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,0.25)]">
@@ -672,18 +724,36 @@ function Dot({ spinning }: { spinning?: boolean }) {
   );
 }
 
-function PreviewToolbar({ slug }: { slug: string }) {
+function PreviewToolbar({
+  slug,
+  variant = "vizitka",
+}: {
+  slug: string;
+  variant?: "vizitka" | "landing";
+}) {
   return (
-    <div className="flex h-10 items-center justify-between border-b border-[color:var(--border)] bg-white px-4 text-xs text-neutral-600">
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-[color:var(--border)] bg-white px-4 py-2 text-xs text-neutral-600">
       <div className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full border border-neutral-400" />
         <span className="h-2 w-2 rounded-full border border-neutral-400" />
         <span className="h-2 w-2 rounded-full border border-neutral-400" />
       </div>
-      <span className="flex h-6 items-center gap-1.5 rounded border border-[color:var(--border)] bg-neutral-50 px-2 font-mono">
-        weblinker.uz/{slug}
-      </span>
-      <span className="text-[11px] uppercase tracking-[0.12em]">jonli ko&apos;rinish</span>
+      <div className="flex flex-col items-center gap-0.5 sm:flex-row sm:gap-2">
+        <span className="flex h-6 items-center gap-1.5 rounded border border-[color:var(--border)] bg-neutral-50 px-2 font-mono">
+          weblinker.uz/{slug}
+        </span>
+        {variant === "landing" ? (
+          <span className="hidden text-[10px] text-neutral-500 sm:inline">
+            to‘liq sahifa
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col items-end text-right leading-tight">
+        <span className="text-[11px] uppercase tracking-[0.12em]">jonli ko&apos;rinish</span>
+        {variant === "landing" ? (
+          <span className="text-[10px] text-neutral-500">brauzer oynasi</span>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -698,6 +768,7 @@ function LandingSections({
   templateId: TemplateId;
 }) {
   const isSimple = templateId === "simple";
+  const isMarketing = templateId === "marketing";
 
   const blocksFallback = defaultLandingContent(content.businessName).sectionBlocks!;
   const block = (i: 0 | 1): LandingSectionBlock =>
@@ -733,7 +804,96 @@ function LandingSections({
             rows={2}
           />
         </Field>
+        {isMarketing ? (
+          <>
+            <Field label="Birinchi tugma matni" hint="Pastki ariza bo‘limiga (#contact)">
+              <TextInput
+                value={content.heroCtaPrimaryLabel ?? ""}
+                onChange={(v) => update("heroCtaPrimaryLabel", v)}
+              />
+            </Field>
+            <Field label="Ikkinchi tugma matni" hint="Xizmatlar bo‘limiga (#services)">
+              <TextInput
+                value={content.heroCtaSecondaryLabel ?? ""}
+                onChange={(v) => update("heroCtaSecondaryLabel", v)}
+              />
+            </Field>
+          </>
+        ) : null}
       </Section>
+
+      {isMarketing ? (
+        <>
+          <Anchor id="services" />
+          <Section
+            title="Xizmatlar bo‘limi"
+            description="Sahifadagi katta sarlavha va izoh — kartochkalar keyingi bo‘limda"
+          >
+            <Field label="Bo‘lim sarlavhasi">
+              <TextInput
+                value={content.servicesSectionTitle ?? ""}
+                onChange={(v) => update("servicesSectionTitle", v)}
+              />
+            </Field>
+            <Field label="Bo‘lim izohi">
+              <TextAreaInput
+                value={content.servicesSectionSubtitle ?? ""}
+                onChange={(v) => update("servicesSectionSubtitle", v)}
+                rows={2}
+              />
+            </Field>
+          </Section>
+          <ServicesEditor
+            title="Tarif kartochkalari"
+            description="Har kartochkada nom, narx, tavsif va ixtiyoriy punktlar ro‘yxati"
+            showBullets
+            services={content.services}
+            onChange={(services) => update("services", services)}
+          />
+          <Anchor id="process" />
+          <Section title="Jarayon bo‘limi" description="Marketing sahifasidagi kichik sarlavha">
+            <Field label="Bo‘lim sarlavhasi">
+              <TextInput
+                value={content.processSectionTitle ?? ""}
+                onChange={(v) => update("processSectionTitle", v)}
+              />
+            </Field>
+          </Section>
+          <ProcessStepsEditor
+            steps={content.processSteps ?? defaultLandingContent(content.businessName).processSteps!}
+            onChange={(processSteps) => update("processSteps", processSteps)}
+          />
+          <Anchor id="faq" />
+          <Section title="FAQ bo‘limi" description="Accordion savollar">
+            <Field label="Bo‘lim sarlavhasi">
+              <TextInput
+                value={content.faqSectionTitle ?? ""}
+                onChange={(v) => update("faqSectionTitle", v)}
+              />
+            </Field>
+          </Section>
+          <FaqEditor
+            items={content.faqItems ?? defaultLandingContent(content.businessName).faqItems!}
+            onChange={(faqItems) => update("faqItems", faqItems)}
+          />
+          <Anchor id="simple-contact" />
+          <Section title="Aloqa formasi" description="Pastki forma ustidagi sarlavha va izoh">
+            <Field label="Sarlavha">
+              <TextInput
+                value={content.contactSectionTitle ?? ""}
+                onChange={(v) => update("contactSectionTitle", v)}
+              />
+            </Field>
+            <Field label="Qisqa izoh">
+              <TextAreaInput
+                value={content.contactSectionSubtitle ?? ""}
+                onChange={(v) => update("contactSectionSubtitle", v)}
+                rows={2}
+              />
+            </Field>
+          </Section>
+        </>
+      ) : null}
 
       {isSimple ? (
         <>
@@ -788,7 +948,7 @@ function LandingSections({
         </>
       ) : null}
 
-      {!isSimple ? (
+      {!isSimple && templateId !== "marketing" ? (
         <>
           <Anchor id="about" />
       <Section title="Biz haqimizda">
@@ -1084,15 +1244,18 @@ function IconPicker({
 function ServicesEditor({
   services,
   onChange,
+  showBullets,
+  title = "Xizmatlar va narxlar",
+  description = "Mijozlarga ko'rsatadigan xizmatlar ro'yxati",
 }: {
   services: ServiceItem[];
   onChange: (next: ServiceItem[]) => void;
+  showBullets?: boolean;
+  title?: string;
+  description?: string;
 }) {
   return (
-    <Section
-      title="Xizmatlar va narxlar"
-      description="Mijozlarga ko'rsatadigan xizmatlar ro'yxati"
-    >
+    <Section title={title} description={description}>
       <div className="space-y-3">
         {services.map((service, idx) => (
           <div
@@ -1153,6 +1316,32 @@ function ServicesEditor({
                 rows={2}
               />
             </Field>
+            {showBullets ? (
+              <Field
+                label="Ro‘yxat punktlari"
+                hint="Har qator — bitta punkt (marketing kartochkasida ro‘yxat sifatida)"
+              >
+                <TextAreaInput
+                  value={(service.bullets ?? []).join("\n")}
+                  onChange={(v) =>
+                    onChange(
+                      services.map((s) =>
+                        s.id === service.id
+                          ? {
+                              ...s,
+                              bullets: v
+                                .split("\n")
+                                .map((l) => l.trim())
+                                .filter(Boolean),
+                            }
+                          : s,
+                      ),
+                    )
+                  }
+                  rows={4}
+                />
+              </Field>
+            ) : null}
           </div>
         ))}
       </div>
@@ -1170,6 +1359,163 @@ function ServicesEditor({
         }
         label="Xizmat qo'shish"
       />
+    </Section>
+  );
+}
+
+function ProcessStepsEditor({
+  steps,
+  onChange,
+}: {
+  steps: ProcessStepItem[];
+  onChange: (next: ProcessStepItem[]) => void;
+}) {
+  return (
+    <Section title="Jarayon qadamlari" description="Marketing sahifasida tartib bilan chiqadi">
+      <div className="space-y-3">
+        {steps.map((step, idx) => (
+          <div
+            key={step.id}
+            className="space-y-3 rounded-xl border border-[color:var(--border)] bg-neutral-50 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                Qadam #{idx + 1}
+              </span>
+              {steps.length > 1 ? (
+                <IconButton
+                  onClick={() => onChange(steps.filter((s) => s.id !== step.id))}
+                  label="O'chirish"
+                  destructive
+                >
+                  <XIcon />
+                </IconButton>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Raqam (masalan 01)">
+                <TextInput
+                  value={step.step}
+                  onChange={(v) =>
+                    onChange(
+                      steps.map((s) => (s.id === step.id ? { ...s, step: v } : s)),
+                    )
+                  }
+                />
+              </Field>
+            </div>
+            <Field label="Sarlavha">
+              <TextInput
+                value={step.title}
+                onChange={(v) =>
+                  onChange(
+                    steps.map((s) => (s.id === step.id ? { ...s, title: v } : s)),
+                  )
+                }
+              />
+            </Field>
+            <Field label="Matn">
+              <TextAreaInput
+                value={step.body}
+                onChange={(v) =>
+                  onChange(
+                    steps.map((s) => (s.id === step.id ? { ...s, body: v } : s)),
+                  )
+                }
+                rows={3}
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
+      {steps.length < 6 ? (
+        <AddButton
+          onClick={() =>
+            onChange([
+              ...steps,
+              {
+                id: newId(),
+                step: String(steps.length + 1).padStart(2, "0"),
+                title: "Yangi qadam",
+                body: "",
+              },
+            ])
+          }
+          label="Qadam qo'shish"
+        />
+      ) : null}
+    </Section>
+  );
+}
+
+function FaqEditor({
+  items,
+  onChange,
+}: {
+  items: FaqItem[];
+  onChange: (next: FaqItem[]) => void;
+}) {
+  return (
+    <Section title="Savol-javoblar" description="Har bir element accordion bo‘lib ochiladi">
+      <div className="space-y-3">
+        {items.map((item, idx) => (
+          <div
+            key={item.id}
+            className="space-y-3 rounded-xl border border-[color:var(--border)] bg-neutral-50 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                Savol #{idx + 1}
+              </span>
+              {items.length > 1 ? (
+                <IconButton
+                  onClick={() => onChange(items.filter((x) => x.id !== item.id))}
+                  label="O'chirish"
+                  destructive
+                >
+                  <XIcon />
+                </IconButton>
+              ) : null}
+            </div>
+            <Field label="Savol">
+              <TextInput
+                value={item.question}
+                onChange={(v) =>
+                  onChange(
+                    items.map((x) => (x.id === item.id ? { ...x, question: v } : x)),
+                  )
+                }
+              />
+            </Field>
+            <Field label="Javob">
+              <TextAreaInput
+                value={item.answer}
+                onChange={(v) =>
+                  onChange(
+                    items.map((x) => (x.id === item.id ? { ...x, answer: v } : x)),
+                  )
+                }
+                rows={3}
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
+      {items.length < 12 ? (
+        <AddButton
+          onClick={() =>
+            onChange([
+              ...items,
+              {
+                id: newId(),
+                question: "Yangi savol",
+                answer: "",
+              },
+            ])
+          }
+          label="Savol qo'shish"
+        />
+      ) : null}
     </Section>
   );
 }

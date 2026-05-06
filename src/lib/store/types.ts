@@ -8,7 +8,7 @@ export type VizitkaTemplateId =
   | "card"
   | "polaroid"
   | "ticket";
-export type LandingTemplateId = "default" | "simple";
+export type LandingTemplateId = "default" | "simple" | "marketing";
 export type TemplateId = VizitkaTemplateId | LandingTemplateId;
 
 export type SiteImage = {
@@ -102,6 +102,8 @@ export type ServiceItem = {
   name: string;
   price: string;
   description?: string;
+  /** Marketing sahifa — ro‘yxat punktlari */
+  bullets?: string[];
 };
 
 export type GalleryItem = {
@@ -188,6 +190,19 @@ export type LandingSectionBlock = {
   body: string;
 };
 
+export type ProcessStepItem = {
+  id: string;
+  step: string;
+  title: string;
+  body: string;
+};
+
+export type FaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
 export type LandingContent = VizitkaContent & {
   heroTitle: string;
   heroSubtitle: string;
@@ -206,6 +221,15 @@ export type LandingContent = VizitkaContent & {
   sectionBlocks?: LandingSectionBlock[];
   contactSectionTitle?: string;
   contactSectionSubtitle?: string;
+  /** Marketing sahifa — hero tugmalari matni (#contact / #services) */
+  heroCtaPrimaryLabel?: string;
+  heroCtaSecondaryLabel?: string;
+  servicesSectionTitle?: string;
+  servicesSectionSubtitle?: string;
+  processSectionTitle?: string;
+  processSteps?: ProcessStepItem[];
+  faqSectionTitle?: string;
+  faqItems?: FaqItem[];
 };
 
 export type SiteStatus = "draft" | "published" | "paused";

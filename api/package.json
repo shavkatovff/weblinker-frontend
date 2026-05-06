@@ -16,6 +16,7 @@
     "prisma:migrate": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 migrate dev",
     "prisma:migrate:deploy": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 migrate deploy",
     "migrate:deploy": "npm run prisma:migrate:deploy",
+    "migrate:resolve:init": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 migrate resolve --applied 20260101000000_init_schema",
     "prisma:push": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 db push",
     "prisma:reset": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 db push --force-reset",
     "postinstall": "dotenv -e ../.env -e .env -- npx prisma@5.22.0 generate",

@@ -5,8 +5,11 @@ import {
 } from "./defaults";
 import { newId } from "./store";
 import {
+  FaqItem,
   LandingContent,
   PatternId,
+  ProcessStepItem,
+  ServiceItem,
   SocialItem,
   SocialLinks,
   SocialNetwork,
@@ -94,7 +97,8 @@ export function normalizeSite(site: UnknownSite): UnknownSite {
     ...site,
     templateId: (() => {
       const id = (site.templateId as string) ?? "simple";
-      return (id === "default" || id === "simple" ? id : "simple") as TemplateId;
+      if (id === "default" || id === "simple" || id === "marketing") return id as TemplateId;
+      return "simple" as TemplateId;
     })(),
     publicationId:
       typeof (site as { publicationId?: unknown }).publicationId === "string"
@@ -125,6 +129,48 @@ function normalizeVizitka(content: VizitkaContent): VizitkaContent {
   };
 }
 
+function normalizeServiceItem(s: ServiceItem): ServiceItem {
+  const bullets = Array.isArray(s.bullets)
+    ? s.bullets.map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean)
+    : undefined;
+  return {
+    ...s,
+    bullets: bullets?.length ? bullets : undefined,
+  };
+}
+
+function normalizeProcessSteps(
+  raw: unknown,
+  defaults: ProcessStepItem[],
+): ProcessStepItem[] {
+  if (!Array.isArray(raw) || raw.length === 0) return defaults;
+  return raw.map((item, i) => {
+    if (!item || typeof item !== "object") return defaults[Math.min(i, defaults.length - 1)]!;
+    const o = item as Record<string, unknown>;
+    const def = defaults[Math.min(i, defaults.length - 1)]!;
+    return {
+      id: typeof o.id === "string" ? o.id : newId(),
+      step: typeof o.step === "string" ? o.step : def.step,
+      title: typeof o.title === "string" ? o.title : def.title,
+      body: typeof o.body === "string" ? o.body : def.body,
+    };
+  });
+}
+
+function normalizeFaqItems(raw: unknown, defaults: FaqItem[]): FaqItem[] {
+  if (!Array.isArray(raw) || raw.length === 0) return defaults;
+  return raw.map((item, i) => {
+    if (!item || typeof item !== "object") return defaults[Math.min(i, defaults.length - 1)]!;
+    const o = item as Record<string, unknown>;
+    const def = defaults[Math.min(i, defaults.length - 1)]!;
+    return {
+      id: typeof o.id === "string" ? o.id : newId(),
+      question: typeof o.question === "string" ? o.question : def.question,
+      answer: typeof o.answer === "string" ? o.answer : def.answer,
+    };
+  });
+}
+
 function normalizeLanding(content: LandingContent): LandingContent {
   const vizitka = normalizeVizitka(content);
   const defaults = defaultLandingContent(content.businessName || "Biznes");
@@ -140,12 +186,20 @@ function normalizeLanding(content: LandingContent): LandingContent {
     heroSubtitle: content.heroSubtitle ?? defaults.heroSubtitle,
     about: content.about ?? defaults.about,
     hours: content.hours ?? defaults.hours,
-    services: content.services ?? defaults.services,
+    services: (content.services ?? defaults.services).map(normalizeServiceItem),
     gallery: content.gallery ?? defaults.gallery,
     features: content.features ?? defaults.features,
     stats: content.stats ?? defaults.stats,
     testimonials: content.testimonials ?? defaults.testimonials,
     ctaTitle: content.ctaTitle ?? defaults.ctaTitle,
     ctaSubtitle: content.ctaSubtitle ?? defaults.ctaSubtitle,
+    heroCtaPrimaryLabel: content.heroCtaPrimaryLabel ?? defaults.heroCtaPrimaryLabel,
+    heroCtaSecondaryLabel: content.heroCtaSecondaryLabel ?? defaults.heroCtaSecondaryLabel,
+    servicesSectionTitle: content.servicesSectionTitle ?? defaults.servicesSectionTitle,
+    servicesSectionSubtitle: content.servicesSectionSubtitle ?? defaults.servicesSectionSubtitle,
+    processSectionTitle: content.processSectionTitle ?? defaults.processSectionTitle,
+    processSteps: normalizeProcessSteps(content.processSteps, defaults.processSteps ?? []),
+    faqSectionTitle: content.faqSectionTitle ?? defaults.faqSectionTitle,
+    faqItems: normalizeFaqItems(content.faqItems, defaults.faqItems ?? []),
   };
 }

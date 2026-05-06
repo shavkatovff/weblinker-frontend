@@ -23,8 +23,8 @@ export class UpsertLandingDto {
   slug!: string;
 
   @IsString()
-  @IsIn(["default", "simple"])
-  templateId!: "default" | "simple";
+  @IsIn(["default", "simple", "marketing"])
+  templateId!: "default" | "simple" | "marketing";
 
   @IsString()
   @IsIn(["draft", "published", "paused"])

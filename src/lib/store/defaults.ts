@@ -1,6 +1,8 @@
 import {
+  FaqItem,
   FeatureItem,
   LandingContent,
+  ProcessStepItem,
   ServiceItem,
   StatItem,
   Testimonial,
@@ -64,14 +66,105 @@ export function defaultLandingContent(businessName = "Biznesingiz nomi"): Landin
     ctaTitle: "Bugun bog'laning — tezda javob beramiz",
     ctaSubtitle:
       "Telefon qilish yoki xabar yozish — har ikkisi ham ochiq. Savollaringizga 24 soat ichida javob beramiz.",
+    heroCtaPrimaryLabel: "Buyurtma berish",
+    heroCtaSecondaryLabel: "Xizmatlar",
+    servicesSectionTitle: "Xizmatlar va tariflar",
+    servicesSectionSubtitle:
+      "Har bir paket — aniq narx va qisqa tavsif. Batafsil uchun biz bilan bog‘laning.",
+    processSectionTitle: "Qanday ishlaymiz",
+    processSteps: defaultProcessSteps(),
+    faqSectionTitle: "Ko‘p beriladigan savollar",
+    faqItems: defaultFaqItems(),
   };
+}
+
+function defaultProcessSteps(): ProcessStepItem[] {
+  return [
+    {
+      id: "ps-1",
+      step: "01",
+      title: "Ariza",
+      body: "Saytdan yoki telefon orqali qisqa ariza qoldirasiz — biz loyiha bo‘yicha aniqlik kiritamiz.",
+    },
+    {
+      id: "ps-2",
+      step: "02",
+      title: "Kelishuv",
+      body: "Hajm, muddat va narx bo‘yicha kelishib olamiz, shartnama yoki og‘zaki kelishuv.",
+    },
+    {
+      id: "ps-3",
+      step: "03",
+      title: "Ishlash",
+      body: "Reja bo‘yicha bajaramiz, jarayonda qisqa yangilanishlar berib turamiz.",
+    },
+    {
+      id: "ps-4",
+      step: "04",
+      title: "Topshirish",
+      body: "Natijani topshiramiz, kerak bo‘lsa tuzatishlar va qo‘llab-quvvatlash.",
+    },
+  ];
+}
+
+function defaultFaqItems(): FaqItem[] {
+  return [
+    {
+      id: "fq-1",
+      question: "Buyurtma qanday beriladi?",
+      answer:
+        "Pastdagi forma orqali ism, telefon va izoh qoldiring yoki to‘g‘ridan-to‘g‘ri telefon qiling — tezda javob beramiz.",
+    },
+    {
+      id: "fq-2",
+      question: "To‘lov qanday amalga oshiriladi?",
+      answer:
+        "Kelishilgan usulda: naqd, karta yoki hisob-kitob — har loyiha uchun alohida kelishamiz.",
+    },
+    {
+      id: "fq-3",
+      question: "Muddat qancha?",
+      answer:
+        "Hajm va murakkablikka qarab o‘zgaradi. Aniq muddatni ariza yoki qisqa suhbatdan keyin beramiz.",
+    },
+    {
+      id: "fq-4",
+      question: "Kafolat bormi?",
+      answer:
+        "Xizmat turiga qarab kafolat shartlari farq qiladi — batafsil shartlarni buyurtma oldidan muhokama qilamiz.",
+    },
+    {
+      id: "fq-5",
+      question: "Viloyatdan ham ish qilasizmi?",
+      answer:
+        "Ha, masofadan ham jamoamiz bilan ishlaymiz — kerak bo‘lsa sayyohlik yoki onlayn formatda.",
+    },
+  ];
 }
 
 function defaultServices(): ServiceItem[] {
   return [
-    { id: "svc-1", name: "Asosiy xizmat", price: "100 000 so'm", description: "Mijozlar eng ko'p buyurtma qiladigan xizmat." },
-    { id: "svc-2", name: "Kengaytirilgan xizmat", price: "250 000 so'm", description: "Premium variant — qo'shimcha imkoniyatlar bilan." },
-    { id: "svc-3", name: "Individual taklif", price: "Kelishuv asosida", description: "Katta buyurtmalar uchun shaxsiy narx." },
+    {
+      id: "svc-1",
+      name: "Asosiy xizmat",
+      price: "100 000 so'm",
+      description: "Mijozlar eng ko'p buyurtma qiladigan xizmat.",
+      bullets: ["Tezkor boshlash", "Standart hajm", "Email orqali natija"],
+    },
+    {
+      id: "svc-2",
+      name: "Kengaytirilgan xizmat",
+      price: "250 000 so'm",
+      description: "Premium variant — qo'shimcha imkoniyatlar bilan.",
+      bullets: ["Qo‘shimcha reviziya", "ustuvor navbat", "qisqa konsultatsiya"],
+    },
+    {
+      id: "svc-3",
+      name: "Individual taklif",
+      price: "Kelishuv asosida",
+      description: "Katta buyurtmalar uchun shaxsiy narx.",
+      bullets: ["Shaxsiy menejer", "moslashuvchan muddat", "shartnoma bo‘yicha"],
+    },
   ];
 }
 

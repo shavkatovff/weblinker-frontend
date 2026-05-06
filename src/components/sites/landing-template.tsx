@@ -4,6 +4,7 @@ import { monoGradient } from "@/lib/theme/gradients";
 import { SocialRow } from "./social-icons";
 import { FeatureIcon } from "./feature-icons";
 import { SimpleLandingTemplate } from "./simple-landing-template";
+import { MarketingLandingTemplate } from "./marketing-landing-template";
 
 type Props = {
   content: LandingContent;
@@ -14,6 +15,9 @@ type Props = {
 export function LandingTemplate({ content, templateId, slug }: Props) {
   if (templateId === "simple") {
     return <SimpleLandingTemplate content={content} slug={slug} />;
+  }
+  if (templateId === "marketing") {
+    return <MarketingLandingTemplate content={content} slug={slug} />;
   }
   return (
     <div className="flex min-h-full w-full flex-col bg-white">

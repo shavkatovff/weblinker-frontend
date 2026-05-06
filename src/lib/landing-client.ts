@@ -4,7 +4,7 @@ import type { UnknownSite } from "./store/types";
 export async function upsertLanding(body: {
   publicationId?: string;
   slug: string;
-  templateId: "default" | "simple";
+  templateId: "default" | "simple" | "marketing";
   status: "draft" | "published" | "paused";
   content: Record<string, unknown>;
 }): Promise<{ site: unknown }> {
