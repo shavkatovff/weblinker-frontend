@@ -95,8 +95,8 @@ export class CreateVizitkaDto {
 
   /** Tanlangan obuna: vizitka yaratishda tugash sanasi (oy bo'yicha) */
   @IsOptional()
-  @IsIn([3, 6, 12])
-  subscriptionMonths?: 3 | 6 | 12;
+  @IsIn([6, 12])
+  subscriptionMonths?: 6 | 12;
 }
 
 export class UpdateVizitkaBodyDto {

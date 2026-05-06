@@ -14,13 +14,6 @@ export class UpdateAppSettingsDto {
   @IsInt()
   @Min(1000)
   @Max(999_999_999)
-  paket3Som?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1000)
-  @Max(999_999_999)
   paket6Som?: number;
 
   @IsOptional()

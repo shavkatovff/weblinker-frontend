@@ -1,11 +1,11 @@
 import type { PublicPricing } from "./vizitka-pricing";
 
 /** Mijoz vizitka paketlari — summa va muddat (oy) */
-export type VizitkaPackageId = "free" | "p3" | "p6" | "p12";
+export type VizitkaPackageId = "free" | "p6" | "p12";
 
 export type VizitkaPackage = {
-  id: "p3" | "p6" | "p12";
-  months: 3 | 6 | 12;
+  id: "p6" | "p12";
+  months: 6 | 12;
   priceSom: number;
   title: string;
   subtitle: string;
@@ -33,14 +33,6 @@ export function buildVizitkaPackages(pricing: PublicPricing): VizitkaPackage[] {
   const p = pricing.pricesSom;
   return [
     {
-      id: "p3",
-      months: 3,
-      priceSom: p["3"],
-      title: "3 oy",
-      subtitle: "Qisqa muddat — sinab ko‘rish uchun qulay.",
-      hint: perMonthHint(3, p["3"]),
-    },
-    {
       id: "p6",
       months: 6,
       priceSom: p["6"],
@@ -60,9 +52,9 @@ export function buildVizitkaPackages(pricing: PublicPricing): VizitkaPackage[] {
   ];
 }
 
-export function packagePriceByMonths(pricing: PublicPricing): Record<3 | 6 | 12, number> {
+export function packagePriceByMonths(pricing: PublicPricing): Record<6 | 12, number> {
   const x = pricing.pricesSom;
-  return { 3: x["3"], 6: x["6"], 12: x["12"] };
+  return { 6: x["6"], 12: x["12"] };
 }
 
 export function formatSom(n: number): string {

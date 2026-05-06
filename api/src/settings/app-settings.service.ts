@@ -7,13 +7,13 @@ const SEED: Omit<AppSettings, "updatedAt"> = {
   id: 1,
   freePublishDays: 10,
   paket3Som: 37_000,
-  paket6Som: 57_000,
-  paket12Som: 97_000,
+  paket6Som: 75_000,
+  paket12Som: 125_000,
 };
 
 export type PublicPricingDto = {
   freePublishDays: number;
-  pricesSom: { "3": number; "6": number; "12": number };
+  pricesSom: { "6": number; "12": number };
 };
 
 @Injectable()
@@ -33,14 +33,21 @@ export class AppSettingsService {
     return {
       freePublishDays: r.freePublishDays,
       pricesSom: {
-        "3": r.paket3Som,
         "6": r.paket6Som,
         "12": r.paket12Som,
       },
     };
   }
 
-  async priceSomForMonths(months: 3 | 6 | 12): Promise<number> {
+  /** Yangi obuna — faqat 6 va 12 oy */
+  async priceSomForMonths(months: 6 | 12): Promise<number> {
+    const r = await this.get();
+    if (months === 6) return r.paket6Som;
+    return r.paket12Som;
+  }
+
+  /** CLICK complete: eski `merchant_trans_id` da 3 oy bo‘lishi mumkin */
+  async priceSomForMonthsLegacy(months: 3 | 6 | 12): Promise<number> {
     const r = await this.get();
     if (months === 3) return r.paket3Som;
     if (months === 6) return r.paket6Som;
@@ -49,7 +56,6 @@ export class AppSettingsService {
 
   async update(patch: {
     freePublishDays?: number;
-    paket3Som?: number;
     paket6Som?: number;
     paket12Som?: number;
   }): Promise<AppSettings> {
@@ -60,7 +66,6 @@ export class AppSettingsService {
         ...(patch.freePublishDays != null && {
           freePublishDays: patch.freePublishDays,
         }),
-        ...(patch.paket3Som != null && { paket3Som: patch.paket3Som }),
         ...(patch.paket6Som != null && { paket6Som: patch.paket6Som }),
         ...(patch.paket12Som != null && { paket12Som: patch.paket12Som }),
       },

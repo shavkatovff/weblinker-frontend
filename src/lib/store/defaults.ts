@@ -31,6 +31,24 @@ export function defaultVizitkaContent(businessName = "Biznesingiz nomi"): Vizitk
 export function defaultLandingContent(businessName = "Biznesingiz nomi"): LandingContent {
   return {
     ...defaultVizitkaContent(businessName),
+    layoutVariant: "simple",
+    sectionBlocks: [
+      {
+        id: "sb-1",
+        title: "Biz haqimizda",
+        body:
+          "Bu yerda kompaniyangiz yoki xizmatlaringiz haqida batafsil yozing — tarix, vaqf-muvaffaqiyat, ish tamoyilingiz.",
+      },
+      {
+        id: "sb-2",
+        title: "Nima uchun aynan biz?",
+        body:
+          "Mijozlar uchun afzalliklaringizni aniq va sodda tilda yozing: tezkorlik, kafolat, individual yondashuv va hokazo.",
+      },
+    ],
+    contactSectionTitle: "Ariza qoldiring",
+    contactSectionSubtitle:
+      "Ism, telefon va Telegram — javob berish uchun yetarli. Xabar qoldiring, biz tezda bog‘lanamiz.",
     heroEyebrow: "O'ZBEKISTON · TOSHKENT",
     heroTitle: `${businessName} — xizmatlaringiz sarhisobi`,
     heroSubtitle:

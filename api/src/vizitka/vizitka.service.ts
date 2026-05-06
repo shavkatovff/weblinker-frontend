@@ -194,6 +194,12 @@ export class VizitkaService {
     if (exists) {
       throw new ConflictException("Bu manzil (nom) allaqachon olingan");
     }
+    const landingTaken = await this.prisma.landingPublication.findUnique({
+      where: { slug: dto.name },
+    });
+    if (landingTaken) {
+      throw new ConflictException("Bu manzil landing sayt tomonidan band");
+    }
     const now = new Date();
     const settings = await this.appSettings.get();
     const trialDays = settings.freePublishDays;

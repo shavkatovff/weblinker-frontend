@@ -88,4 +88,17 @@ export class AdminController {
   async patchSettings(@Body() body: UpdateAppSettingsDto) {
     return this.admin.updateAppSettings(body);
   }
+
+  @Get("landing-inquiries")
+  async listLandingInquiries(
+    @Query("take") take?: string,
+    @Query("skip") skip?: string,
+  ) {
+    const t = take ? parseInt(take, 10) : 100;
+    const s = skip ? parseInt(skip, 10) : 0;
+    return this.admin.listLandingInquiries(
+      Number.isFinite(t) ? t : 100,
+      Number.isFinite(s) ? s : 0,
+    );
+  }
 }

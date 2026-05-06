@@ -1,13 +1,20 @@
 import { LandingContent } from "@/lib/store/types";
+import type { TemplateId } from "@/lib/store/types";
 import { monoGradient } from "@/lib/theme/gradients";
 import { SocialRow } from "./social-icons";
 import { FeatureIcon } from "./feature-icons";
+import { SimpleLandingTemplate } from "./simple-landing-template";
 
 type Props = {
   content: LandingContent;
+  templateId: TemplateId;
+  slug: string;
 };
 
-export function LandingTemplate({ content }: Props) {
+export function LandingTemplate({ content, templateId, slug }: Props) {
+  if (templateId === "simple") {
+    return <SimpleLandingTemplate content={content} slug={slug} />;
+  }
   return (
     <div className="flex min-h-full w-full flex-col bg-white">
       <Nav content={content} />

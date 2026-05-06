@@ -8,7 +8,7 @@ export type VizitkaTemplateId =
   | "card"
   | "polaroid"
   | "ticket";
-export type LandingTemplateId = "default";
+export type LandingTemplateId = "default" | "simple";
 export type TemplateId = VizitkaTemplateId | LandingTemplateId;
 
 export type SiteImage = {
@@ -182,6 +182,12 @@ export type VizitkaContent = {
   pattern: PatternId;
 };
 
+export type LandingSectionBlock = {
+  id: string;
+  title: string;
+  body: string;
+};
+
 export type LandingContent = VizitkaContent & {
   heroTitle: string;
   heroSubtitle: string;
@@ -195,6 +201,11 @@ export type LandingContent = VizitkaContent & {
   testimonials: Testimonial[];
   ctaTitle: string;
   ctaSubtitle: string;
+  /** `simple` shablon: header + 2 blok + aloqa */
+  layoutVariant?: "default" | "simple";
+  sectionBlocks?: LandingSectionBlock[];
+  contactSectionTitle?: string;
+  contactSectionSubtitle?: string;
 };
 
 export type SiteStatus = "draft" | "published" | "paused";
@@ -209,6 +220,8 @@ export type Site<T extends SiteType = SiteType> = {
   updatedAt: string;
   trialEndsAt: string;
   subscriptionEndsAt?: string;
+  /** Landing API `landing_publications.id` */
+  publicationId?: string;
   content: T extends "vizitka" ? VizitkaContent : LandingContent;
 };
 

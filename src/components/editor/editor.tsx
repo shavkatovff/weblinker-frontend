@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColorThemeId,
   FeatureIconKind,
   FeatureItem,
   LandingContent,
+  LandingTemplateId,
+  LandingSectionBlock,
   PatternId,
   ServiceItem,
   SiteImage,
@@ -19,6 +21,7 @@ import {
   VizitkaContent,
   VizitkaTemplateId,
   getColorTheme,
+  TemplateId,
 } from "@/lib/store/types";
 import {
   deleteSite,
@@ -27,7 +30,9 @@ import {
   saveSite,
   slugExists,
 } from "@/lib/store/store";
-import { deriveInitials } from "@/lib/store/defaults";
+import { upsertLanding } from "@/lib/landing-client";
+import { deriveInitials, defaultLandingContent } from "@/lib/store/defaults";
+import { normalizeSite } from "@/lib/store/normalize";
 import { Button } from "@/components/ui/button";
 import { SiteRenderer } from "@/components/sites/site-renderer";
 import { FeatureIcon, FEATURE_ICON_OPTIONS } from "@/components/sites/feature-icons";
@@ -168,10 +173,36 @@ export function Editor({
     } as UnknownSite));
   };
 
-  const togglePublish = () => {
+  const togglePublish = useCallback(async () => {
     const nextStatus = draft.status === "published" ? "draft" : "published";
-    setDraft((prev) => ({ ...prev, status: nextStatus }));
-  };
+    if (draft.type !== "landing") {
+      setDraft((prev) => ({ ...prev, status: nextStatus }));
+      return;
+    }
+    try {
+      const tid =
+        draft.templateId === "default" || draft.templateId === "simple"
+          ? draft.templateId
+          : "simple";
+      const res = await upsertLanding({
+        publicationId: draft.publicationId,
+        slug: draft.slug,
+        templateId: tid,
+        status: nextStatus,
+        content: draft.content as unknown as Record<string, unknown>,
+      });
+      const prevId = draft.id;
+      const site = normalizeSite(res.site as UnknownSite);
+      if (prevId !== site.id) {
+        deleteSite(prevId);
+      }
+      setDraft(site);
+      setSavedAt(new Date(site.updatedAt));
+      saveSite(site);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Serverda saqlanmadi");
+    }
+  }, [draft]);
 
   const updateTemplate = (id: VizitkaTemplateId) => {
     setDraft((prev) => ({ ...prev, templateId: id }));
@@ -272,7 +303,31 @@ export function Editor({
                     />
                   </Field>
                 </>
-              ) : null}
+              ) : (
+                <Field label="Shablon" hint="Oddiy — header, 2 ta matn bo‘limi va ariza formasi">
+                  <select
+                    className="h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 text-sm outline-none focus:border-black"
+                    value={
+                      draft.templateId === "default" || draft.templateId === "simple"
+                        ? draft.templateId
+                        : "simple"
+                    }
+                    onChange={(e) =>
+                      setDraft((prev) =>
+                        prev.type === "landing"
+                          ? {
+                              ...prev,
+                              templateId: e.target.value as LandingTemplateId,
+                            }
+                          : prev,
+                      )
+                    }
+                  >
+                    <option value="simple">Oddiy (2 bo‘lim + ariza)</option>
+                    <option value="default">To‘liq (xizmatlar, galereya, …)</option>
+                  </select>
+                </Field>
+              )}
 
               {supportsHero ? (
                 <ImageUpload
@@ -440,6 +495,7 @@ export function Editor({
 
             {isLanding ? (
               <LandingSections
+                templateId={draft.templateId}
                 content={draft.content as LandingContent}
                 update={updateLanding}
               />
@@ -533,7 +589,7 @@ function EditorHeader({
   site: UnknownSite;
   saveState: SaveState;
   savedAt: Date | null;
-  onTogglePublish: () => void;
+  onTogglePublish: () => void | Promise<void>;
 }) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-[color:var(--border)] bg-white px-4 lg:px-6">
@@ -566,7 +622,7 @@ function EditorHeader({
         </Button>
         <Button
           size="sm"
-          onClick={onTogglePublish}
+          onClick={() => void onTogglePublish()}
           variant={site.status === "published" ? "secondary" : "primary"}
         >
           {site.status === "published" ? "Qoralama" : "Nashr qilish"}
@@ -635,10 +691,24 @@ function PreviewToolbar({ slug }: { slug: string }) {
 function LandingSections({
   content,
   update,
+  templateId,
 }: {
   content: LandingContent;
   update: <K extends keyof LandingContent>(key: K, value: LandingContent[K]) => void;
+  templateId: TemplateId;
 }) {
+  const isSimple = templateId === "simple";
+
+  const blocksFallback = defaultLandingContent(content.businessName).sectionBlocks!;
+  const block = (i: 0 | 1): LandingSectionBlock =>
+    (content.sectionBlocks ?? blocksFallback)[i] ?? blocksFallback[i]!;
+  const patchBlock = (i: 0 | 1, patch: Partial<LandingSectionBlock>) => {
+    const base = content.sectionBlocks ?? [...blocksFallback];
+    const next = [...base];
+    next[i] = { ...block(i), ...patch };
+    update("sectionBlocks", next as LandingContent["sectionBlocks"]);
+  };
+
   return (
     <>
       <Anchor id="hero" />
@@ -665,7 +735,62 @@ function LandingSections({
         </Field>
       </Section>
 
-      <Anchor id="about" />
+      {isSimple ? (
+        <>
+          <Anchor id="sections" />
+          <Section
+            title="O‘rta bo‘limlar"
+            description="Ikkita matn bloki — bosh sahifada ketma-ket chiqadi"
+          >
+            <Field label="1-bo‘lim sarlavhasi">
+              <TextInput
+                value={block(0).title}
+                onChange={(v) => patchBlock(0, { title: v })}
+              />
+            </Field>
+            <Field label="1-bo‘lim matni">
+              <TextAreaInput
+                value={block(0).body}
+                onChange={(v) => patchBlock(0, { body: v })}
+                rows={5}
+              />
+            </Field>
+            <Field label="2-bo‘lim sarlavhasi">
+              <TextInput
+                value={block(1).title}
+                onChange={(v) => patchBlock(1, { title: v })}
+              />
+            </Field>
+            <Field label="2-bo‘lim matni">
+              <TextAreaInput
+                value={block(1).body}
+                onChange={(v) => patchBlock(1, { body: v })}
+                rows={5}
+              />
+            </Field>
+          </Section>
+          <Anchor id="simple-contact" />
+          <Section title="Aloqa formasi" description="Pastki forma ustidagi sarlavha va izoh">
+            <Field label="Sarlavha">
+              <TextInput
+                value={content.contactSectionTitle ?? ""}
+                onChange={(v) => update("contactSectionTitle", v)}
+              />
+            </Field>
+            <Field label="Qisqa izoh">
+              <TextAreaInput
+                value={content.contactSectionSubtitle ?? ""}
+                onChange={(v) => update("contactSectionSubtitle", v)}
+                rows={2}
+              />
+            </Field>
+          </Section>
+        </>
+      ) : null}
+
+      {!isSimple ? (
+        <>
+          <Anchor id="about" />
       <Section title="Biz haqimizda">
         <Field label="Tavsif matni">
           <TextAreaInput
@@ -764,6 +889,8 @@ function LandingSections({
           />
         </Field>
       </Section>
+        </>
+      ) : null}
     </>
   );
 }

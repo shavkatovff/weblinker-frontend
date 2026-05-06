@@ -14,6 +14,12 @@ const NAV = [
   { href: "/gradeadmin/vizitkas", label: "Vizitkalar", icon: IconSites, exact: false },
   { href: "/gradeadmin/users", label: "Foydalanuvchilar", icon: IconUsers, exact: false },
   { href: "/gradeadmin/payments", label: "To‘lovlar", icon: IconPayments, exact: false },
+  {
+    href: "/gradeadmin/landing-inquiries",
+    label: "Landing arizalar",
+    icon: IconInbox,
+    exact: false,
+  },
   { href: "/gradeadmin/settings", label: "Sozlamalar", icon: IconSettings, exact: false },
 ] as const;
 
@@ -75,6 +81,21 @@ function IconPayments({ className }: { className?: string }) {
         strokeWidth="2"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function IconInbox({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path
+        d="M3 6.5h12l-1 5H4l-1-5zM3 6.5L4 4h10l1 2.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M6.5 11v3h5v-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

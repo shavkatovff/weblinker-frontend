@@ -265,7 +265,6 @@ export class AdminService {
     const r = await this.appSettings.get();
     return {
       freePublishDays: r.freePublishDays,
-      paket3Som: r.paket3Som,
       paket6Som: r.paket6Som,
       paket12Som: r.paket12Som,
       updatedAt: r.updatedAt.toISOString(),
@@ -276,10 +275,46 @@ export class AdminService {
     const r = await this.appSettings.update(dto);
     return {
       freePublishDays: r.freePublishDays,
-      paket3Som: r.paket3Som,
       paket6Som: r.paket6Som,
       paket12Som: r.paket12Som,
       updatedAt: r.updatedAt.toISOString(),
+    };
+  }
+
+  async listLandingInquiries(take = 100, skip = 0) {
+    const [total, rows] = await Promise.all([
+      this.prisma.landingInquiry.count(),
+      this.prisma.landingInquiry.findMany({
+        orderBy: { createdAt: "desc" },
+        take: Math.min(take, 500),
+        skip,
+        include: {
+          landing: { select: { slug: true, id: true } },
+          owner: {
+            select: {
+              id: true,
+              publicId: true,
+              number: true,
+              fullName: true,
+              telegramId: true,
+            },
+          },
+        },
+      }),
+    ]);
+    return {
+      total,
+      items: rows.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt.toISOString(),
+        visitorName: r.visitorName,
+        visitorPhone: r.visitorPhone,
+        visitorTelegram: r.visitorTelegram,
+        message: r.message,
+        landingSlug: r.landing.slug,
+        landingId: r.landing.id,
+        owner: r.owner,
+      })),
     };
   }
 }

@@ -13,6 +13,6 @@ export class CreateClickPaymentDto {
   vizitkaId?: string;
 
   @IsOptional()
-  @IsIn([3, 6, 12])
-  subscriptionMonths?: 3 | 6 | 12;
+  @IsIn([6, 12])
+  subscriptionMonths?: 6 | 12;
 }

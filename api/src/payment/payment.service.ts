@@ -103,7 +103,7 @@ export class PaymentService {
   async createClickPayment(
     userId: number,
     amountSom: number,
-    opts?: { vizitkaId?: string; subscriptionMonths?: 3 | 6 | 12 },
+    opts?: { vizitkaId?: string; subscriptionMonths?: 6 | 12 },
   ) {
     const amount = this.assertAmountSom(amountSom);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -315,7 +315,9 @@ export class PaymentService {
       if (subMeta.userId !== payment.userId) {
         return { error: -6, error_note: 'Transaction does not exist' };
       }
-      const expectedSom = await this.appSettings.priceSomForMonths(subMeta.months);
+      const expectedSom = await this.appSettings.priceSomForMonthsLegacy(
+        subMeta.months,
+      );
       if (payment.amount !== expectedSom) {
         return { error: -2, error_note: 'Incorrect parameter amount' };
       }

@@ -43,8 +43,8 @@ export type CreateVizitkaBody = {
   patternId?: string;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "EXPIRED";
   mapLink?: string;
-  /** 3, 6 yoki 12 oy — `expiredAt` shu muddatgacha */
-  subscriptionMonths?: 3 | 6 | 12;
+  /** 6 yoki 12 oy — `expiredAt` shu muddatgacha */
+  subscriptionMonths?: 6 | 12;
 };
 
 export async function postVizitka(
@@ -92,7 +92,7 @@ export function buildVizitkaCreatePayload(opts: {
   colorTheme: string;
   pattern: string;
   heroDataUrl?: string;
-  subscriptionMonths?: 3 | 6 | 12;
+  subscriptionMonths?: 6 | 12;
 }): CreateVizitkaBody & Record<string, string | number | undefined> {
   const basePayload: CreateVizitkaBody = {
     name: opts.name,
@@ -123,7 +123,7 @@ export function buildVizitkaCreatePayload(opts: {
 
 export async function createVizitkaSubscriptionPayment(opts: {
   vizitkaId: string;
-  subscriptionMonths: 3 | 6 | 12;
+  subscriptionMonths: 6 | 12;
   amountSom: number;
 }): Promise<CreateClickPaymentRes> {
   const t = getAccessToken();

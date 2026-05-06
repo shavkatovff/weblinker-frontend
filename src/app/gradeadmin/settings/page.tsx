@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 
 type SettingsRow = {
   freePublishDays: number;
-  paket3Som: number;
   paket6Som: number;
   paket12Som: number;
   updatedAt: string;
@@ -20,9 +19,8 @@ export default function AdminSettingsPage() {
   const [s, setS] = useState<SettingsRow | null>(null);
   const [form, setForm] = useState({
     freePublishDays: "10",
-    paket3Som: "37000",
-    paket6Som: "57000",
-    paket12Som: "97000",
+    paket6Som: "75000",
+    paket12Som: "125000",
   });
 
   const load = useCallback(async () => {
@@ -32,7 +30,6 @@ export default function AdminSettingsPage() {
       setS(r);
       setForm({
         freePublishDays: String(r.freePublishDays),
-        paket3Som: String(r.paket3Som),
         paket6Som: String(r.paket6Som),
         paket12Som: String(r.paket12Som),
       });
@@ -49,11 +46,10 @@ export default function AdminSettingsPage() {
 
   async function save() {
     const freePublishDays = parseInt(form.freePublishDays, 10);
-    const paket3Som = parseInt(form.paket3Som, 10);
     const paket6Som = parseInt(form.paket6Som, 10);
     const paket12Som = parseInt(form.paket12Som, 10);
     if (
-      ![freePublishDays, paket3Som, paket6Som, paket12Som].every(
+      ![freePublishDays, paket6Som, paket12Som].every(
         (n) => Number.isFinite(n) && n >= 1,
       )
     ) {
@@ -64,7 +60,7 @@ export default function AdminSettingsPage() {
       setErr("Bepul kunlar 365 dan oshmasin");
       return;
     }
-    if (Math.min(paket3Som, paket6Som, paket12Som) < 1000) {
+    if (Math.min(paket6Som, paket12Som) < 1000) {
       setErr("Har bir paket narxi kamida 1000 so‘m");
       return;
     }
@@ -75,7 +71,6 @@ export default function AdminSettingsPage() {
         method: "PATCH",
         body: JSON.stringify({
           freePublishDays,
-          paket3Som,
           paket6Som,
           paket12Som,
         }),
@@ -83,7 +78,6 @@ export default function AdminSettingsPage() {
       setS(r);
       setForm({
         freePublishDays: String(r.freePublishDays),
-        paket3Som: String(r.paket3Som),
         paket6Som: String(r.paket6Som),
         paket12Som: String(r.paket12Som),
       });
@@ -114,7 +108,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Platforma sozlamalari"
-        description="Bepul nashr muddati va vizitka obuna paketlari narxlari (so‘m). O‘zgarishlar yangi yaratiladigan vizitka va to‘lovlarda qo‘llanadi."
+        description="Bepul nashr muddati va vizitka obuna paketlari narxlari (so‘m). Faqat 6 va 12 oylik paketlar. O‘zgarishlar yangi yaratiladigan vizitka va to‘lovlarda qo‘llanadi."
       />
 
       {err ? <AdminAlert>{err}</AdminAlert> : null}
@@ -134,16 +128,6 @@ export default function AdminSettingsPage() {
             <p className="mt-1 text-xs text-zinc-500">
               Yangi vizitka uchun bepul muddati shu kunlarda belgilanadi.
             </p>
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium text-zinc-800">3 oylik paket (so‘m)</span>
-            <input
-              className={inp}
-              type="number"
-              min={1000}
-              value={form.paket3Som}
-              onChange={(e) => setForm((f) => ({ ...f, paket3Som: e.target.value }))}
-            />
           </label>
           <label className="block text-sm">
             <span className="font-medium text-zinc-800">6 oylik paket (so‘m)</span>

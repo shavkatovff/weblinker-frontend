@@ -2,15 +2,17 @@ import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { apiBaseUrl } from "@/lib/api-base";
+import { LANDING_PRICE_SOM } from "@/lib/landing-pricing";
 import { FALLBACK_PUBLIC_PRICING, type PublicPricing } from "@/lib/vizitka-pricing";
 
 type Plan = {
   id: string;
   name: string;
   price: number;
-  /** Masalan `· 3 oy` yoki `/ oy` */
+  /** Masalan `· 6 oy` */
   priceSuffix: string;
-  /** 3 oylik paket uchun oyiga taxminan */
+  /** Ikkinchi qator: masalan 12 oylik paket */
+  secondaryPriceLine?: string;
   perMonthApproxLine?: string;
   priceNote?: string;
   tagline: string;
@@ -34,17 +36,21 @@ function formatPrice(value: number) {
 
 export async function Pricing() {
   const pricing = await loadPricing();
-  const vizitka3mo = pricing.pricesSom["3"];
-  /** Yuzlikka yaxlitlangan oy narxi (masalan 37 000 → 12 300) */
-  const perMo = Math.round(vizitka3mo / 3 / 100) * 100;
+  const v6 = pricing.pricesSom["6"];
+  const v12 = pricing.pricesSom["12"];
+  const perMoV = Math.round(v6 / 6 / 100) * 100;
+  const l6 = LANDING_PRICE_SOM["6"];
+  const l12 = LANDING_PRICE_SOM["12"];
+  const perMoL = Math.round(l6 / 6 / 100) * 100;
   const plans: Plan[] = [
     {
       id: "vizitka",
       name: "Vizitka",
-      price: vizitka3mo,
-      priceSuffix: "· 3 oy",
-      perMonthApproxLine: `≈ ${formatPrice(perMo)} so'm/oy`,
-      priceNote: "3 oy, 6 oy va 1 yil paketlari",
+      price: v6,
+      priceSuffix: "· 6 oy",
+      secondaryPriceLine: `${formatPrice(v12)} so'm · 12 oy`,
+      perMonthApproxLine: `≈ ${formatPrice(perMoV)} so'm/oy (6 oy paketi)`,
+      priceNote: "6 oy va 1 yil paketlari",
       tagline: "Bir ekranli biznes kartasi",
       features: [
         "1 ekranli sayt",
@@ -56,8 +62,10 @@ export async function Pricing() {
     {
       id: "landing",
       name: "Landing",
-      price: 87_000,
-      priceSuffix: "/ oy",
+      price: l6,
+      priceSuffix: "· 6 oy",
+      secondaryPriceLine: `${formatPrice(l12)} so'm · 12 oy`,
+      perMonthApproxLine: `≈ ${formatPrice(perMoL)} so'm/oy (6 oy paketi)`,
       tagline: "Bir nechta bo'limli sayt",
       features: [
         "Vizitka tarifidagi barchasi",
@@ -124,6 +132,9 @@ function PricingCard({ plan }: { plan: Plan }) {
             so&apos;m {plan.priceSuffix}
           </span>
         </div>
+        {plan.secondaryPriceLine ? (
+          <p className="text-sm font-medium text-neutral-700">{plan.secondaryPriceLine}</p>
+        ) : null}
         {plan.perMonthApproxLine ? (
           <p className="text-sm font-medium text-neutral-600">{plan.perMonthApproxLine}</p>
         ) : null}

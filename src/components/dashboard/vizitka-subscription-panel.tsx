@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function VizitkaSubscriptionPanel({ site }: Props) {
-  const [loadingMonths, setLoadingMonths] = useState<3 | 6 | 12 | null>(null);
+  const [loadingMonths, setLoadingMonths] = useState<6 | 12 | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
 
@@ -41,7 +41,7 @@ export function VizitkaSubscriptionPanel({ site }: Props) {
       year: "numeric",
     }).format(new Date(endsIso));
 
-  async function pay(months: 3 | 6 | 12) {
+  async function pay(months: 6 | 12) {
     setMessage(null);
     setLoadingMonths(months);
     try {
@@ -84,7 +84,7 @@ export function VizitkaSubscriptionPanel({ site }: Props) {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {packages.map((p) => (
           <button
             key={p.id}

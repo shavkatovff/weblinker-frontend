@@ -92,7 +92,14 @@ export function normalizeSite(site: UnknownSite): UnknownSite {
   }
   return {
     ...site,
-    templateId: (site.templateId ?? "default") as TemplateId,
+    templateId: (() => {
+      const id = (site.templateId as string) ?? "simple";
+      return (id === "default" || id === "simple" ? id : "simple") as TemplateId;
+    })(),
+    publicationId:
+      typeof (site as { publicationId?: unknown }).publicationId === "string"
+        ? (site as { publicationId: string }).publicationId
+        : undefined,
     content: normalizeLanding(site.content),
   };
 }
@@ -123,6 +130,11 @@ function normalizeLanding(content: LandingContent): LandingContent {
   const defaults = defaultLandingContent(content.businessName || "Biznes");
   return {
     ...vizitka,
+    layoutVariant: content.layoutVariant ?? defaults.layoutVariant,
+    sectionBlocks: content.sectionBlocks ?? defaults.sectionBlocks,
+    contactSectionTitle: content.contactSectionTitle ?? defaults.contactSectionTitle,
+    contactSectionSubtitle:
+      content.contactSectionSubtitle ?? defaults.contactSectionSubtitle,
     heroEyebrow: content.heroEyebrow ?? defaults.heroEyebrow,
     heroTitle: content.heroTitle ?? defaults.heroTitle,
     heroSubtitle: content.heroSubtitle ?? defaults.heroSubtitle,

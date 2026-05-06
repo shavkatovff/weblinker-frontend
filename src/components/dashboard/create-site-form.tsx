@@ -33,6 +33,7 @@ import {
   fetchVizitkaPricing,
   type PublicPricing,
 } from "@/lib/vizitka-pricing";
+import { LANDING_PRICE_SOM } from "@/lib/landing-pricing";
 import {
   COLOR_THEMES,
   ColorThemeId,
@@ -136,7 +137,7 @@ export function CreateSiteForm() {
     useState<VizitkaTemplateId>("minimal");
   const [colorTheme, setColorTheme] = useState<ColorThemeId>("mono");
   const [pattern, setPattern] = useState<PatternId>("none");
-  const landingTemplateId: LandingTemplateId = "default";
+  const landingTemplateId: LandingTemplateId = "simple";
 
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -150,10 +151,10 @@ export function CreateSiteForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
-  const [tierPayLoading, setTierPayLoading] = useState<3 | 6 | 12 | null>(null);
+  const [tierPayLoading, setTierPayLoading] = useState<6 | 12 | null>(null);
   /** Vizitka: bepul kunlar va paket narxlari API dan */
   const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
-  const [vizitkaTier, setVizitkaTier] = useState<"free" | 3 | 6 | 12 | null>(null);
+  const [vizitkaTier, setVizitkaTier] = useState<"free" | 6 | 12 | null>(null);
   const [siteCreated, setSiteCreated] = useState<SiteCreatedSuccessState | null>(null);
 
   const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
@@ -170,8 +171,8 @@ export function CreateSiteForm() {
   useEffect(() => {
     if (searchParams.get("click") !== "1") return;
     const m = sessionStorage.getItem(SESSION_SUB_MONTHS);
-    if (m === "3" || m === "6" || m === "12") {
-      setVizitkaTier(Number(m) as 3 | 6 | 12);
+    if (m === "6" || m === "12") {
+      setVizitkaTier(Number(m) as 6 | 12);
       setStep(1);
     }
     sessionStorage.removeItem(SESSION_SUB_MONTHS);
@@ -217,7 +218,7 @@ export function CreateSiteForm() {
   }, []);
 
   const handleVizitkaTierSelect = useCallback(
-    async (tier: "free" | 3 | 6 | 12) => {
+    async (tier: "free" | 6 | 12) => {
       setFinishError(null);
       if (tier === "free") {
         sessionStorage.removeItem(SESSION_SUB_MONTHS);
@@ -569,9 +570,9 @@ function VizitkaPackagePicker({
   payingTier,
 }: {
   onBack: () => void;
-  onSelectTier: (tier: "free" | 3 | 6 | 12) => void | Promise<void>;
+  onSelectTier: (tier: "free" | 6 | 12) => void | Promise<void>;
   pricing: PublicPricing;
-  payingTier: 3 | 6 | 12 | null;
+  payingTier: 6 | 12 | null;
 }) {
   const freePackage = useMemo(
     () => buildVizitkaFreePackage(pricing.freePublishDays),
@@ -597,7 +598,7 @@ function VizitkaPackagePicker({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <button
           type="button"
           disabled={busy}
@@ -679,7 +680,8 @@ function TypePicker({
   onPick: (type: SiteType) => void;
   pricing: PublicPricing;
 }) {
-  const startPrice = formatSom(pricing.pricesSom["3"]);
+  const startPrice = formatSom(pricing.pricesSom["6"]);
+  const landingLine = `${formatSom(LANDING_PRICE_SOM["6"])} · 6 oy · ${formatSom(LANDING_PRICE_SOM["12"])} · 12 oy`;
   return (
     <div>
       <div className="mb-8 text-center">
@@ -707,15 +709,15 @@ function TypePicker({
         />
         <TypeCard
           title="Landing"
-          price="87 000 so'm / oy"
-          description="Bir nechta bo'limli to'laqonli sayt — xizmatlar, narxlar, galereya."
+          price={landingLine}
+          description="Shablon asosida sahifa: tartibli bloklar va pastda ariza formasi — egaga Telegram orqali keladi."
           features={[
-            "Bir nechta bo'lim",
-            "Xizmatlar va narxlar jadvali",
-            "Galereya va sharhlar",
-            "Aloqa formasi (Telegram bot)",
+            "Header va matn bloklari tahrirlash",
+            "Pastki forma: ism, telefon, Telegram, izoh",
+            "Oddiy yoki to‘liq shablon",
+            "Nashr — URL da jonli",
           ]}
-          disabled
+          onClick={() => onPick("landing")}
         />
       </div>
     </div>

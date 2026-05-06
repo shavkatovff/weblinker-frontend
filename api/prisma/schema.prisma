@@ -38,6 +38,8 @@ model User {
 
   vizitkas Vizitka[]
   payments Payment[]
+  landingPublications    LandingPublication[]
+  landingInquiriesReceived LandingInquiry[] @relation("LandingInquiryOwner")
 
   @@map("users")
 }
@@ -152,10 +154,47 @@ model AppSettings {
 
   freePublishDays Int @default(10) @map("free_publish_days")
   paket3Som       Int @default(37000) @map("paket_3_som")
-  paket6Som       Int @default(57000) @map("paket_6_som")
-  paket12Som      Int @default(97000) @map("paket_12_som")
+  paket6Som       Int @default(75000) @map("paket_6_som")
+  paket12Som      Int @default(125000) @map("paket_12_som")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
+}
+
+/// Landing sahifa — slug bo‘yicha ochiq URL (vizitka bilan bir yo‘nalishda raqobat: bir xil slug bo‘lmasligi kerak)
+model LandingPublication {
+  id            String   @id @default(cuid())
+  ownerPublicId String   @map("owner_public_id")
+  slug          String   @unique
+  templateId    String   @default("simple") @map("template_id")
+  /// `draft` · `published` · `paused` — frontend `SiteStatus` bilan mos
+  status        String   @default("draft")
+  contentJson   Json     @map("content_json")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  owner     User             @relation(fields: [ownerPublicId], references: [publicId], onDelete: Cascade)
+  inquiries LandingInquiry[]
+
+  @@index([ownerPublicId])
+  @@map("landing_publications")
+}
+
+model LandingInquiry {
+  id              Int      @id @default(autoincrement())
+  landingId       String   @map("landing_id")
+  ownerUserId     Int      @map("owner_user_id")
+  visitorName     String   @map("visitor_name") @db.VarChar(200)
+  visitorPhone    String   @map("visitor_phone") @db.VarChar(40)
+  visitorTelegram String?  @map("visitor_telegram") @db.VarChar(80)
+  message         String   @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  landing LandingPublication @relation(fields: [landingId], references: [id], onDelete: Cascade)
+  owner   User               @relation("LandingInquiryOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([landingId])
+  @@index([ownerUserId])
+  @@map("landing_inquiries")
 }

@@ -113,7 +113,7 @@ export function createSite(params: {
   };
 
   const defaultTemplate: TemplateId =
-    params.type === "vizitka" ? "minimal" : "default";
+    params.type === "vizitka" ? "minimal" : "simple";
   const templateId: TemplateId = params.templateId ?? defaultTemplate;
 
   const site: UnknownSite =

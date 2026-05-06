@@ -1,7 +1,7 @@
 /** `expired_at` null bo‘lsa `toPublicSiteJson` fallback — DB default bilan mos */
 export const DEFAULT_VIZITKA_FREE_PUBLISH_DAYS = 10;
 
-export function computeSubscriptionExpiredAt(months: 3 | 6 | 12, anchor: Date): Date {
+export function computeSubscriptionExpiredAt(months: 6 | 12, anchor: Date): Date {
   const end = new Date(anchor);
   end.setMonth(end.getMonth() + months);
   end.setHours(23, 59, 59, 999);
