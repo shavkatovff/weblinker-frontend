@@ -1,6 +1,15 @@
 import { api } from "./api";
 import type { UnknownSite } from "./store/types";
 
+export async function chargeLandingCreatePackage(
+  months: 6 | 12,
+): Promise<{ ok: true }> {
+  return api<{ ok: true }>("/landing/charge-create-package", {
+    method: "POST",
+    body: JSON.stringify({ months }),
+  });
+}
+
 export async function upsertLanding(body: {
   publicationId?: string;
   slug: string;

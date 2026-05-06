@@ -156,6 +156,9 @@ model AppSettings {
   paket3Som       Int @default(37000) @map("paket_3_som")
   paket6Som       Int @default(75000) @map("paket_6_som")
   paket12Som      Int @default(125000) @map("paket_12_som")
+  /// Landing sayt paketlari (so'm) — vizitka narxlari bilan mustaqil
+  landingPaket6Som  Int @default(780000) @map("landing_paket_6_som")
+  landingPaket12Som Int @default(1180000) @map("landing_paket_12_som")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 

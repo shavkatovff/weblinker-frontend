@@ -33,7 +33,12 @@ import {
   fetchVizitkaPricing,
   type PublicPricing,
 } from "@/lib/vizitka-pricing";
-import { LANDING_PRICE_SOM } from "@/lib/landing-pricing";
+import { chargeLandingCreatePackage } from "@/lib/landing-client";
+import {
+  buildLandingFreePackage,
+  buildLandingPackages,
+  landingPackagePriceByMonths,
+} from "@/lib/landing-pricing";
 import {
   COLOR_THEMES,
   ColorThemeId,
@@ -98,8 +103,10 @@ const steps = [
   { n: 3, label: "Ma'lumotlar" },
 ];
 
-/** CLICK dan qaytganda tanlangan oy paketi */
+/** CLICK dan qaytganda — vizitka oy paketi */
 const SESSION_SUB_MONTHS = "weblinker.newSite.subscriptionMonths";
+/** CLICK dan qaytganda — landing oy paketi */
+const SESSION_LANDING_SUB_MONTHS = "weblinker.newSite.landingSubscriptionMonths";
 
 const COMMON_CATEGORIES = [
   "Chayxana",
@@ -155,9 +162,14 @@ export function CreateSiteForm() {
   /** Vizitka: bepul kunlar va paket narxlari API dan */
   const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
   const [vizitkaTier, setVizitkaTier] = useState<"free" | 6 | 12 | null>(null);
+  const [landingTier, setLandingTier] = useState<"free" | 6 | 12 | null>(null);
   const [siteCreated, setSiteCreated] = useState<SiteCreatedSuccessState | null>(null);
 
   const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
+  const landingPriceByMonths = useMemo(
+    () => landingPackagePriceByMonths(pricing),
+    [pricing],
+  );
 
   useEffect(() => {
     setReady(true);
@@ -171,11 +183,17 @@ export function CreateSiteForm() {
   useEffect(() => {
     if (searchParams.get("click") !== "1") return;
     const m = sessionStorage.getItem(SESSION_SUB_MONTHS);
+    const l = sessionStorage.getItem(SESSION_LANDING_SUB_MONTHS);
     if (m === "6" || m === "12") {
       setVizitkaTier(Number(m) as 6 | 12);
       setStep(1);
     }
+    if (l === "6" || l === "12") {
+      setLandingTier(Number(l) as 6 | 12);
+      setStep(1);
+    }
     sessionStorage.removeItem(SESSION_SUB_MONTHS);
+    sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
     router.replace("/dashboard/sites/new", { scroll: false });
   }, [searchParams, router]);
 
@@ -215,6 +233,7 @@ export function CreateSiteForm() {
     setHeroImage(undefined);
     setFinishError(null);
     setVizitkaTier(null);
+    setLandingTier(null);
   }, []);
 
   const handleVizitkaTierSelect = useCallback(
@@ -260,6 +279,51 @@ export function CreateSiteForm() {
       }
     },
     [priceByMonths],
+  );
+
+  const handleLandingTierSelect = useCallback(
+    async (tier: "free" | 6 | 12) => {
+      setFinishError(null);
+      if (tier === "free") {
+        sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
+        setLandingTier("free");
+        setStep(1);
+        return;
+      }
+      const price = landingPriceByMonths[tier];
+      setTierPayLoading(tier);
+      try {
+        const me = await api<{ user: { balance: number } }>("/auth/me");
+        const bal = Math.floor(me.user.balance);
+        const need = Math.max(0, price - bal);
+        if (need === 0) {
+          setLandingTier(tier);
+          setStep(1);
+          return;
+        }
+        sessionStorage.setItem(SESSION_LANDING_SUB_MONTHS, String(tier));
+        const payment = await api<CreateClickPaymentRes>("/payments/click", {
+          method: "POST",
+          body: JSON.stringify({ amount: need }),
+        });
+        const returnUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/dashboard/sites/new?click=1`
+            : "/dashboard/sites/new?click=1";
+        window.location.assign(buildClickPayUrl(payment, returnUrl));
+      } catch (e) {
+        const msg =
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "To‘lov boshlanmadi";
+        setFinishError(msg);
+      } finally {
+        setTierPayLoading(null);
+      }
+    },
+    [landingPriceByMonths],
   );
 
   const handleFinish = async () => {
@@ -338,6 +402,24 @@ export function CreateSiteForm() {
         }
         return;
       }
+      if (landingTier === null) {
+        setFinishError("Avval obuna muddatini tanlang.");
+        return;
+      }
+      if (landingTier !== "free") {
+        try {
+          await chargeLandingCreatePackage(landingTier);
+        } catch (e) {
+          setFinishError(
+            e instanceof ApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "Balansdan yechilmadi",
+          );
+          return;
+        }
+      }
       const site = createSite({
         type: siteType,
         businessName: businessName.trim(),
@@ -359,10 +441,21 @@ export function CreateSiteForm() {
           pattern,
         },
       });
+      const nextSite =
+        landingTier === "free"
+          ? {
+              ...site,
+              trialEndsAt: computeLandingTrialEnds(pricing.freePublishDays),
+            }
+          : {
+              ...site,
+              subscriptionEndsAt: computeLandingSubscriptionEnds(landingTier),
+            };
+      saveSite(nextSite);
       setSiteCreated({
-        siteId: site.id,
-        slug: site.slug,
-        businessName: businessNameFromSite(site),
+        siteId: nextSite.id,
+        slug: nextSite.slug,
+        businessName: businessNameFromSite(nextSite),
       });
       return;
     } finally {
@@ -438,6 +531,28 @@ export function CreateSiteForm() {
     );
   }
 
+  if (siteType === "landing" && landingTier === null) {
+    return (
+      <div className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
+        {finishError ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            {finishError}
+          </div>
+        ) : null}
+        <LandingPackagePicker
+          pricing={pricing}
+          payingTier={tierPayLoading}
+          onBack={() => {
+            setFinishError(null);
+            setSiteType(null);
+            setStep(1);
+          }}
+          onSelectTier={handleLandingTierSelect}
+        />
+      </div>
+    );
+  }
+
   if (siteCreated) {
     return (
       <div className="mx-auto max-w-lg px-5 py-10 lg:px-10">
@@ -471,6 +586,18 @@ export function CreateSiteForm() {
               </p>
             )
           ) : null}
+          {siteType === "landing" && landingTier != null ? (
+            landingTier === "free" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                Bepul — {pricing.freePublishDays} kunlik sinov
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                {landingTier} oy —{" "}
+                {formatSom(landingPriceByMonths[landingTier])}
+              </p>
+            )
+          ) : null}
         </div>
         <button
           type="button"
@@ -478,6 +605,10 @@ export function CreateSiteForm() {
             setStep(1);
             if (siteType === "vizitka") {
               setVizitkaTier(null);
+              return;
+            }
+            if (siteType === "landing") {
+              setLandingTier(null);
               return;
             }
             setSiteType(null);
@@ -673,6 +804,116 @@ function VizitkaPackagePicker({
   );
 }
 
+function LandingPackagePicker({
+  onBack,
+  onSelectTier,
+  pricing,
+  payingTier,
+}: {
+  onBack: () => void;
+  onSelectTier: (tier: "free" | 6 | 12) => void | Promise<void>;
+  pricing: PublicPricing;
+  payingTier: 6 | 12 | null;
+}) {
+  const freePackage = useMemo(
+    () => buildLandingFreePackage(pricing.freePublishDays),
+    [pricing.freePublishDays],
+  );
+  const packages = useMemo(() => buildLandingPackages(pricing), [pricing]);
+  const busy = payingTier !== null;
+  return (
+    <div>
+      <div className="mb-8 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+          Obuna muddatini tanlang
+        </h2>
+        <p className="mt-2 text-sm text-neutral-600">
+          Avvalo bepul{" "}
+          <strong className="font-medium text-neutral-800">
+            {pricing.freePublishDays} kun
+          </strong>{" "}
+          sinov yoki landing uchun to&apos;lovli paket. Paket tanlansa yetishmaydigan summa{" "}
+          <strong className="font-medium text-neutral-800">CLICK</strong> orqali balansga
+          o&apos;tadi; keyin &quot;Saytni yaratish&quot; bosilganda balansdan paket narxi
+          yechiladi va muddat qo&apos;shiladi.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSelectTier("free")}
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-dashed border-teal-400/80 bg-gradient-to-b from-teal-50/80 to-white p-6 text-left transition-all hover:border-teal-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            Bepul
+          </span>
+          <div className="mt-1">
+            <p className="text-lg font-semibold text-black">
+              {freePackage.title}
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-teal-800">
+              {freePackage.priceLabel}
+            </p>
+            <p className="mt-1 text-xs text-neutral-600">{freePackage.subtitle}</p>
+            <p className="mt-2 text-[11px] font-medium text-teal-700">
+              {pricing.freePublishDays} kun sinov
+            </p>
+          </div>
+          <span className="mt-auto pt-2 text-sm font-semibold text-teal-900">
+            Tanlash →
+          </span>
+        </button>
+
+        {packages.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            disabled={busy}
+            onClick={() => void onSelectTier(p.months)}
+            className={cn(
+              "group relative flex flex-col gap-3 rounded-2xl border p-6 text-left transition-all disabled:pointer-events-none disabled:opacity-50",
+              p.recommended
+                ? "border-2 border-black bg-white shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)]"
+                : "border border-[color:var(--border)] bg-white hover:border-black",
+            )}
+          >
+            {p.recommended ? (
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                Tavsiya
+              </span>
+            ) : null}
+            <div className="mt-1">
+              <p className="text-lg font-semibold text-black">{p.title}</p>
+              <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                {formatSom(p.priceSom)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">{p.subtitle}</p>
+              {p.hint ? (
+                <p className="mt-2 text-[11px] text-neutral-500">{p.hint}</p>
+              ) : null}
+            </div>
+            <span className="mt-auto pt-2 text-sm font-semibold text-black">
+              {payingTier === p.months ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-10 flex justify-center">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-black"
+        >
+          ← Sayt turini qayta tanlash
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TypePicker({
   onPick,
   pricing,
@@ -681,7 +922,7 @@ function TypePicker({
   pricing: PublicPricing;
 }) {
   const startPrice = formatSom(pricing.pricesSom["6"]);
-  const landingLine = `${formatSom(LANDING_PRICE_SOM["6"])} · 6 oy · ${formatSom(LANDING_PRICE_SOM["12"])} · 12 oy`;
+  const landingLine = `${formatSom(pricing.landingPricesSom["6"])} · 6 oy · ${formatSom(pricing.landingPricesSom["12"])} · 12 oy`;
   return (
     <div>
       <div className="mb-8 text-center">
@@ -1592,4 +1833,18 @@ function validateSlug(slug: string, ready: boolean): string | null {
   if (RESERVED_SLUGS.has(slug)) return "Bu manzil band qilingan";
   if (ready && slugExists(slug)) return "Bu manzil allaqachon ishlatilgan";
   return null;
+}
+
+function computeLandingTrialEnds(freeDays: number): string {
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + freeDays);
+  trialEnd.setHours(23, 59, 59, 999);
+  return trialEnd.toISOString();
+}
+
+function computeLandingSubscriptionEnds(months: 6 | 12): string {
+  const end = new Date();
+  end.setMonth(end.getMonth() + months);
+  end.setHours(23, 59, 59, 999);
+  return end.toISOString();
 }

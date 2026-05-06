@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { JwtAccessGuard } from "../auth/jwt-access.guard";
+import { ChargeLandingSubscriptionDto } from "./dto/charge-landing-subscription.dto";
 import { UpsertLandingDto } from "./dto/upsert-landing.dto";
 import { CreateLandingInquiryDto } from "./dto/create-landing-inquiry.dto";
 import { LandingService } from "./landing.service";
@@ -32,6 +33,15 @@ export class LandingController {
     @Body() body: CreateLandingInquiryDto,
   ) {
     return this.svc.createInquiry(slug, body);
+  }
+
+  @Post("charge-create-package")
+  @UseGuards(JwtAccessGuard)
+  async chargeCreatePackage(
+    @Req() req: { user: { sub: number } },
+    @Body() dto: ChargeLandingSubscriptionDto,
+  ) {
+    return this.svc.chargeCreateSubscription(req.user.sub, dto.months);
   }
 
   @Post("upsert")

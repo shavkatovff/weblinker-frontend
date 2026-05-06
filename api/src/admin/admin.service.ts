@@ -267,6 +267,8 @@ export class AdminService {
       freePublishDays: r.freePublishDays,
       paket6Som: r.paket6Som,
       paket12Som: r.paket12Som,
+      landingPaket6Som: r.landingPaket6Som,
+      landingPaket12Som: r.landingPaket12Som,
       updatedAt: r.updatedAt.toISOString(),
     };
   }
@@ -277,6 +279,8 @@ export class AdminService {
       freePublishDays: r.freePublishDays,
       paket6Som: r.paket6Som,
       paket12Som: r.paket12Som,
+      landingPaket6Som: r.landingPaket6Som,
+      landingPaket12Som: r.landingPaket12Som,
       updatedAt: r.updatedAt.toISOString(),
     };
   }

@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, LandingPublication } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AppSettingsService } from "../settings/app-settings.service";
 import { TelegramService, escapeHtml } from "../telegram/telegram.service";
 
 /** Vizitka `name` bilan mos — bir yo‘nalishda ikki sahifa bo‘lmasin */
@@ -43,12 +45,38 @@ export class LandingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramService,
+    private readonly appSettings: AppSettingsService,
   ) {}
 
   assertSlugAllowed(slug: string) {
     if (RESERVED_SLUGS.has(slug)) {
       throw new ConflictException("Bu manzil tizim tomonidan band");
     }
+  }
+
+  /** Mahalliy landing yaratishda — paket narxi balansdan yechiladi */
+  async chargeCreateSubscription(
+    userId: number,
+    months: 6 | 12,
+  ): Promise<{ ok: true }> {
+    const priceSom = await this.appSettings.priceLandingSomForMonths(months);
+    const price = new Prisma.Decimal(priceSom);
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException("Foydalanuvchi topilmadi");
+      }
+      if (user.balance.lt(price)) {
+        throw new BadRequestException(
+          `Balans yetarli emas. Paket: ${priceSom.toLocaleString("uz-UZ")} so'm. Joriy balans: ${Number(user.balance).toLocaleString("uz-UZ")} so'm.`,
+        );
+      }
+      await tx.user.update({
+        where: { id: userId },
+        data: { balance: { decrement: price } },
+      });
+    });
+    return { ok: true };
   }
 
   publicationToSiteJson(p: LandingPublication) {

@@ -2,7 +2,6 @@ import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { apiBaseUrl } from "@/lib/api-base";
-import { LANDING_PRICE_SOM } from "@/lib/landing-pricing";
 import { FALLBACK_PUBLIC_PRICING, type PublicPricing } from "@/lib/vizitka-pricing";
 
 type Plan = {
@@ -24,7 +23,16 @@ async function loadPricing(): Promise<PublicPricing> {
   try {
     const r = await fetch(`${apiBaseUrl()}/vizitka/pricing`, { next: { revalidate: 60 } });
     if (!r.ok) throw new Error("pricing");
-    return r.json() as Promise<PublicPricing>;
+    const j = (await r.json()) as Partial<PublicPricing>;
+    return {
+      ...FALLBACK_PUBLIC_PRICING,
+      ...j,
+      pricesSom: { ...FALLBACK_PUBLIC_PRICING.pricesSom, ...j.pricesSom },
+      landingPricesSom: {
+        ...FALLBACK_PUBLIC_PRICING.landingPricesSom,
+        ...j.landingPricesSom,
+      },
+    };
   } catch {
     return FALLBACK_PUBLIC_PRICING;
   }
@@ -39,8 +47,8 @@ export async function Pricing() {
   const v6 = pricing.pricesSom["6"];
   const v12 = pricing.pricesSom["12"];
   const perMoV = Math.round(v6 / 6 / 100) * 100;
-  const l6 = LANDING_PRICE_SOM["6"];
-  const l12 = LANDING_PRICE_SOM["12"];
+  const l6 = pricing.landingPricesSom["6"];
+  const l12 = pricing.landingPricesSom["12"];
   const perMoL = Math.round(l6 / 6 / 100) * 100;
   const plans: Plan[] = [
     {

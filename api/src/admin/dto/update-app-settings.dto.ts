@@ -22,4 +22,18 @@ export class UpdateAppSettingsDto {
   @Min(1000)
   @Max(999_999_999)
   paket12Som?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1000)
+  @Max(999_999_999)
+  landingPaket6Som?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1000)
+  @Max(999_999_999)
+  landingPaket12Som?: number;
 }

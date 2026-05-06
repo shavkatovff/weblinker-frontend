@@ -9,11 +9,14 @@ const SEED: Omit<AppSettings, "updatedAt"> = {
   paket3Som: 37_000,
   paket6Som: 75_000,
   paket12Som: 125_000,
+  landingPaket6Som: 780_000,
+  landingPaket12Som: 1_180_000,
 };
 
 export type PublicPricingDto = {
   freePublishDays: number;
   pricesSom: { "6": number; "12": number };
+  landingPricesSom: { "6": number; "12": number };
 };
 
 @Injectable()
@@ -36,10 +39,19 @@ export class AppSettingsService {
         "6": r.paket6Som,
         "12": r.paket12Som,
       },
+      landingPricesSom: {
+        "6": r.landingPaket6Som,
+        "12": r.landingPaket12Som,
+      },
     };
   }
 
-  /** Yangi obuna — faqat 6 va 12 oy */
+  /** Yangi landing yaratishda — faqat 6 va 12 oy */
+  async priceLandingSomForMonths(months: 6 | 12): Promise<number> {
+    const r = await this.get();
+    if (months === 6) return r.landingPaket6Som;
+    return r.landingPaket12Som;
+  }
   async priceSomForMonths(months: 6 | 12): Promise<number> {
     const r = await this.get();
     if (months === 6) return r.paket6Som;
@@ -58,6 +70,8 @@ export class AppSettingsService {
     freePublishDays?: number;
     paket6Som?: number;
     paket12Som?: number;
+    landingPaket6Som?: number;
+    landingPaket12Som?: number;
   }): Promise<AppSettings> {
     await this.get();
     return this.prisma.appSettings.update({
@@ -68,6 +82,12 @@ export class AppSettingsService {
         }),
         ...(patch.paket6Som != null && { paket6Som: patch.paket6Som }),
         ...(patch.paket12Som != null && { paket12Som: patch.paket12Som }),
+        ...(patch.landingPaket6Som != null && {
+          landingPaket6Som: patch.landingPaket6Som,
+        }),
+        ...(patch.landingPaket12Som != null && {
+          landingPaket12Som: patch.landingPaket12Som,
+        }),
       },
     });
   }
