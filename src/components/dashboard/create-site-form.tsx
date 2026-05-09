@@ -37,11 +37,12 @@ import {
   clickInvoiceAmountSom,
   computeClickTopUpNeedSom,
 } from "@/lib/click-invoice-amount";
-import { chargeLandingCreatePackage } from "@/lib/landing-client";
+import { chargeLandingAiStarter, chargeLandingCreatePackage } from "@/lib/landing-client";
 import {
   buildLandingFreePackage,
   buildLandingPackages,
   landingPackagePriceByMonths,
+  LANDING_AI_STARTER_PRICE_SOM,
 } from "@/lib/landing-pricing";
 import {
   COLOR_THEMES,
@@ -111,6 +112,8 @@ const steps = [
 const SESSION_SUB_MONTHS = "weblinker.newSite.subscriptionMonths";
 /** CLICK dan qaytganda — landing oy paketi */
 const SESSION_LANDING_SUB_MONTHS = "weblinker.newSite.landingSubscriptionMonths";
+/** CLICK dan qaytgan — landing AI paketi uchun balans to‘ldirish */
+const SESSION_LANDING_AI_PENDING = "weblinker.newSite.landingAiPending";
 
 const COMMON_CATEGORIES = [
   "Chayxana",
@@ -162,11 +165,13 @@ export function CreateSiteForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
-  const [tierPayLoading, setTierPayLoading] = useState<6 | 12 | null>(null);
+  const [tierPayLoading, setTierPayLoading] = useState<6 | 12 | "ai" | null>(null);
   /** Vizitka: bepul kunlar va paket narxlari API dan */
   const [pricing, setPricing] = useState<PublicPricing>(FALLBACK_PUBLIC_PRICING);
   const [vizitkaTier, setVizitkaTier] = useState<"free" | 6 | 12 | null>(null);
-  const [landingTier, setLandingTier] = useState<"free" | 6 | 12 | null>(null);
+  const [landingTier, setLandingTier] = useState<"free" | "ai" | 6 | 12 | null>(null);
+  /** Landing: shablon bosqichidan keyin ma'lumotlar formasi hali tayyor emas */
+  const [landingComingSoon, setLandingComingSoon] = useState(false);
   const [siteCreated, setSiteCreated] = useState<SiteCreatedSuccessState | null>(null);
 
   const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
@@ -188,6 +193,8 @@ export function CreateSiteForm() {
     if (searchParams.get("click") !== "1") return;
     const m = sessionStorage.getItem(SESSION_SUB_MONTHS);
     const l = sessionStorage.getItem(SESSION_LANDING_SUB_MONTHS);
+    const aiPending = sessionStorage.getItem(SESSION_LANDING_AI_PENDING);
+
     if (m === "6" || m === "12") {
       setVizitkaTier(Number(m) as 6 | 12);
       setStep(1);
@@ -196,6 +203,24 @@ export function CreateSiteForm() {
       setLandingTier(Number(l) as 6 | 12);
       setStep(1);
     }
+    if (aiPending === "1") {
+      sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
+      void chargeLandingAiStarter()
+        .then(() => {
+          setLandingTier("ai");
+          setStep(1);
+        })
+        .catch((e) => {
+          const msg =
+            e instanceof ApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "Balansdan yechilmadi";
+          setFinishError(msg);
+        });
+    }
+
     sessionStorage.removeItem(SESSION_SUB_MONTHS);
     sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
     router.replace("/dashboard/sites/new", { scroll: false });
@@ -238,6 +263,7 @@ export function CreateSiteForm() {
     setFinishError(null);
     setVizitkaTier(null);
     setLandingTier(null);
+    setLandingComingSoon(false);
   }, []);
 
   const handleVizitkaTierSelect = useCallback(
@@ -287,15 +313,56 @@ export function CreateSiteForm() {
   );
 
   const handleLandingTierSelect = useCallback(
-    async (tier: "free" | 6 | 12) => {
+    async (tier: "free" | "ai" | 6 | 12) => {
       setFinishError(null);
       if (tier === "free") {
         sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
+        sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
         setLandingTier("free");
         setStep(1);
         return;
       }
+      if (tier === "ai") {
+        sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
+        sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
+        const price = LANDING_AI_STARTER_PRICE_SOM;
+        setTierPayLoading("ai");
+        try {
+          const me = await api<{ user: { balance: number } }>("/auth/me");
+          const need = clickInvoiceAmountSom(
+            computeClickTopUpNeedSom(price, me.user.balance),
+          );
+          if (need === 0) {
+            await chargeLandingAiStarter();
+            setLandingTier("ai");
+            setStep(1);
+            return;
+          }
+          sessionStorage.setItem(SESSION_LANDING_AI_PENDING, "1");
+          const payment = await api<CreateClickPaymentRes>("/payments/click", {
+            method: "POST",
+            body: JSON.stringify({ amount: need }),
+          });
+          const returnUrl =
+            typeof window !== "undefined"
+              ? `${window.location.origin}/dashboard/sites/new?click=1`
+              : "/dashboard/sites/new?click=1";
+          window.location.assign(buildClickPayUrl(payment, returnUrl));
+        } catch (e) {
+          const msg =
+            e instanceof ApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "To‘lov boshlanmadi";
+          setFinishError(msg);
+        } finally {
+          setTierPayLoading(null);
+        }
+        return;
+      }
       const price = landingPriceByMonths[tier];
+      sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
       setTierPayLoading(tier);
       try {
         const me = await api<{ user: { balance: number } }>("/auth/me");
@@ -412,7 +479,7 @@ export function CreateSiteForm() {
         setFinishError("Avval obuna muddatini tanlang.");
         return;
       }
-      if (landingTier !== "free") {
+      if (landingTier === 6 || landingTier === 12) {
         try {
           await chargeLandingCreatePackage(landingTier);
         } catch (e) {
@@ -453,10 +520,15 @@ export function CreateSiteForm() {
               ...site,
               trialEndsAt: computeLandingTrialEnds(pricing.freePublishDays),
             }
-          : {
-              ...site,
-              subscriptionEndsAt: computeLandingSubscriptionEnds(landingTier),
-            };
+          : landingTier === "ai"
+            ? {
+                ...site,
+                trialEndsAt: computeLandingTrialEnds(pricing.freePublishDays),
+              }
+            : {
+                ...site,
+                subscriptionEndsAt: computeLandingSubscriptionEnds(landingTier),
+              };
       saveSite(nextSite);
       setSiteCreated({
         siteId: nextSite.id,
@@ -525,7 +597,7 @@ export function CreateSiteForm() {
         ) : null}
         <VizitkaPackagePicker
           pricing={pricing}
-          payingTier={tierPayLoading}
+          payingTier={tierPayLoading === 6 || tierPayLoading === 12 ? tierPayLoading : null}
           onBack={() => {
             setFinishError(null);
             setSiteType(null);
@@ -570,6 +642,50 @@ export function CreateSiteForm() {
     );
   }
 
+  if (siteType === "landing" && landingTier != null && landingComingSoon) {
+    return (
+      <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-500">
+              Tarif: <span className="font-semibold text-black">Landing</span>
+            </p>
+            {landingTier === "free" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                Bepul — shablon asosida · {pricing.freePublishDays} kunlik sinov
+              </p>
+            ) : landingTier === "ai" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                AI bilan landing — {formatSom(LANDING_AI_STARTER_PRICE_SOM)}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                {landingTier} oy — {formatSom(landingPriceByMonths[landingTier])}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setStep(1);
+              setLandingTier(null);
+              setLandingComingSoon(false);
+            }}
+            className="text-xs font-medium text-black underline underline-offset-4"
+          >
+            Tarifni o&apos;zgartirish
+          </button>
+        </div>
+
+        <StepIndicator current={3} />
+
+        <LandingInfoComingSoonPlaceholder
+          variant={landingTier === "ai" ? "ai" : "template"}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
       <div className="mb-3 flex items-center justify-between">
@@ -595,7 +711,11 @@ export function CreateSiteForm() {
           {siteType === "landing" && landingTier != null ? (
             landingTier === "free" ? (
               <p className="mt-0.5 text-[11px] text-neutral-600">
-                Bepul — {pricing.freePublishDays} kunlik sinov
+                Bepul — shablon asosida · {pricing.freePublishDays} kunlik sinov
+              </p>
+            ) : landingTier === "ai" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                AI bilan landing — {formatSom(LANDING_AI_STARTER_PRICE_SOM)}
               </p>
             ) : (
               <p className="mt-0.5 text-[11px] text-neutral-600">
@@ -609,6 +729,7 @@ export function CreateSiteForm() {
           type="button"
           onClick={() => {
             setStep(1);
+            setLandingComingSoon(false);
             if (siteType === "vizitka") {
               setVizitkaTier(null);
               return;
@@ -660,13 +781,24 @@ export function CreateSiteForm() {
             />
           ) : (
             <StepTwoLanding
-              onBack={() => setStep(1)}
-              onNext={() => setStep(3)}
+              onBack={() => {
+                setLandingComingSoon(false);
+                setStep(1);
+              }}
+              onNext={() => {
+                if (landingTier === "free" || landingTier === "ai") {
+                  setLandingComingSoon(true);
+                } else {
+                  setLandingComingSoon(false);
+                }
+                setStep(3);
+              }}
             />
           )
         ) : null}
 
-        {step === 3 ? (
+        {step === 3 &&
+        !(siteType === "landing" && landingComingSoon) ? (
           <StepThree
             siteType={siteType}
             templateId={vizitkaTemplateId}
@@ -817,31 +949,32 @@ function LandingPackagePicker({
   payingTier,
 }: {
   onBack: () => void;
-  onSelectTier: (tier: "free" | 6 | 12) => void | Promise<void>;
+  onSelectTier: (tier: "free" | "ai" | 6 | 12) => void | Promise<void>;
   pricing: PublicPricing;
-  payingTier: 6 | 12 | null;
+  payingTier: 6 | 12 | "ai" | null;
 }) {
   const freePackage = useMemo(
     () => buildLandingFreePackage(pricing.freePublishDays),
     [pricing.freePublishDays],
   );
-  const packages = useMemo(() => buildLandingPackages(pricing), [pricing]);
+  const pkg6 = useMemo(() => {
+    const list = buildLandingPackages(pricing);
+    return list.find((p) => p.months === 6) ?? list[0];
+  }, [pricing]);
   const busy = payingTier !== null;
   return (
     <div>
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-          Obuna muddatini tanlang
+          Landing paketini tanlang
         </h2>
         <p className="mt-2 text-sm text-neutral-600">
-          Avvalo bepul{" "}
-          <strong className="font-medium text-neutral-800">
-            {pricing.freePublishDays} kun
-          </strong>{" "}
-          sinov yoki landing uchun to&apos;lovli paket. Paket tanlansa yetishmaydigan summa{" "}
+          <strong className="font-medium text-neutral-800">Bepul</strong> — tayyor shablon asosida;
+          yoki <strong className="font-medium text-neutral-800">AI</strong> bilan qisqa savollar orqali
+          landing · yoki <strong className="font-medium text-neutral-800">6 oylik</strong> obuna.
+          Yetishmaydigan summa{" "}
           <strong className="font-medium text-neutral-800">CLICK</strong> orqali balansga
-          o&apos;tadi; keyin &quot;Saytni yaratish&quot; bosilganda balansdan paket narxi
-          yechiladi va muddat qo&apos;shiladi.
+          o&apos;tadi; obuna paketi saytni yakunlaganingizda balansdan yechiladi.
         </p>
       </div>
 
@@ -853,16 +986,16 @@ function LandingPackagePicker({
           className="group relative flex flex-col gap-3 rounded-2xl border-2 border-dashed border-teal-400/80 bg-gradient-to-b from-teal-50/80 to-white p-6 text-left transition-all hover:border-teal-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
         >
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-            Bepul
+            Shablon
           </span>
           <div className="mt-1">
-            <p className="text-lg font-semibold text-black">
-              {freePackage.title}
-            </p>
+            <p className="text-lg font-semibold text-black">Bepul</p>
             <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-teal-800">
               {freePackage.priceLabel}
             </p>
-            <p className="mt-1 text-xs text-neutral-600">{freePackage.subtitle}</p>
+            <p className="mt-1 text-xs text-neutral-600">
+              Tayyor shablon asosida landing — bloklar va forma.
+            </p>
             <p className="mt-2 text-[11px] font-medium text-teal-700">
               {pricing.freePublishDays} kun sinov
             </p>
@@ -872,39 +1005,53 @@ function LandingPackagePicker({
           </span>
         </button>
 
-        {packages.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            disabled={busy}
-            onClick={() => void onSelectTier(p.months)}
-            className={cn(
-              "group relative flex flex-col gap-3 rounded-2xl border p-6 text-left transition-all disabled:pointer-events-none disabled:opacity-50",
-              p.recommended
-                ? "border-2 border-black bg-white shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)]"
-                : "border border-[color:var(--border)] bg-white hover:border-black",
-            )}
-          >
-            {p.recommended ? (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                Tavsiya
-              </span>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSelectTier("ai")}
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-violet-400/90 bg-gradient-to-b from-violet-50/90 to-white p-6 text-left transition-all hover:border-violet-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            AI
+          </span>
+          <div className="mt-1">
+            <p className="text-lg font-semibold text-black">AI bilan landing</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-violet-900">
+              {formatSom(LANDING_AI_STARTER_PRICE_SOM)}
+            </p>
+            <p className="mt-1 text-xs text-neutral-600">
+              Sun&apos;iy intellekt yordamida matn va tuzilmani tezda yig&apos;ish — bir martalik
+              boshlang&apos;ich paket.
+            </p>
+          </div>
+          <span className="mt-auto pt-2 text-sm font-semibold text-violet-950">
+            {payingTier === "ai" ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSelectTier(6)}
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-black bg-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)] transition-all disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            Obuna
+          </span>
+          <div className="mt-1">
+            <p className="text-lg font-semibold text-black">{pkg6.title}</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+              {formatSom(pkg6.priceSom)}
+            </p>
+            <p className="mt-1 text-xs text-neutral-600">{pkg6.subtitle}</p>
+            {pkg6.hint ? (
+              <p className="mt-2 text-[11px] text-neutral-500">{pkg6.hint}</p>
             ) : null}
-            <div className="mt-1">
-              <p className="text-lg font-semibold text-black">{p.title}</p>
-              <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
-                {formatSom(p.priceSom)}
-              </p>
-              <p className="mt-1 text-xs text-neutral-600">{p.subtitle}</p>
-              {p.hint ? (
-                <p className="mt-2 text-[11px] text-neutral-500">{p.hint}</p>
-              ) : null}
-            </div>
-            <span className="mt-auto pt-2 text-sm font-semibold text-black">
-              {payingTier === p.months ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
-            </span>
-          </button>
-        ))}
+          </div>
+          <span className="mt-auto pt-2 text-sm font-semibold text-black">
+            {payingTier === 6 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+          </span>
+        </button>
       </div>
 
       <div className="mt-10 flex justify-center">
@@ -928,7 +1075,7 @@ function TypePicker({
   pricing: PublicPricing;
 }) {
   const startPrice = formatSom(pricing.pricesSom["6"]);
-  const landingLine = `${formatSom(pricing.landingPricesSom["6"])} · 6 oy · ${formatSom(pricing.landingPricesSom["12"])} · 12 oy`;
+  const landingLine = `Bepul shablon · AI ${formatSom(LANDING_AI_STARTER_PRICE_SOM)} · 6 oy ${formatSom(pricing.landingPricesSom["6"])}`;
   return (
     <div>
       <div className="mb-8 text-center">
@@ -1425,6 +1572,73 @@ function StepTwoVizitka({
         <Button size="lg" onClick={onNext}>
           Davom etish →
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function LandingInfoComingSoonPlaceholder({
+  variant,
+}: {
+  variant: "template" | "ai";
+}) {
+  const blurLayers =
+    variant === "ai"
+      ? "from-violet-100/70 via-white/50 to-violet-50/40"
+      : "from-neutral-100/85 via-white/45 to-neutral-200/55";
+
+  return (
+    <div className="mt-8">
+      <div className="relative isolate overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 shadow-inner">
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${blurLayers} animate-pulse`}
+          style={{ animationDuration: "3s" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 animate-pulse rounded-full bg-neutral-300/70 blur-3xl"
+          style={{ animationDuration: "2.8s" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 animate-pulse rounded-full bg-[rgba(181,107,37,.18)] blur-3xl"
+          style={{ animationDuration: "3.4s" }}
+        />
+        <div className="relative backdrop-blur-[10px]">
+          <div className="flex min-h-[min(52vh,480px)] flex-col items-center justify-center px-6 py-14 text-center sm:py-20">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              Ma&apos;lumotlar
+            </p>
+            <div className="mt-4 flex flex-wrap items-end justify-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 motion-safe:animate-[pulse_2.2s_ease-in-out_infinite] sm:text-4xl">
+                Tez kunda
+              </h2>
+              <span className="mb-1 inline-flex gap-1 pb-1 sm:mb-2" aria-hidden>
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="inline-block h-2 w-2 rounded-full bg-neutral-400 motion-safe:animate-bounce"
+                    style={{
+                      animationDelay: `${i * 160}ms`,
+                      animationDuration: "1s",
+                    }}
+                  />
+                ))}
+              </span>
+            </div>
+            <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
+              {variant === "ai"
+                ? "AI yordamida landing tuzish bosqichi tez orada ochiladi. To‘langan paketingiz hisobingizda qoladi."
+                : "Shablon asosidagi landingni yakunlash va ma’lumotlarni to‘ldirish tez orada mavjud bo‘ladi."}
+            </p>
+            <div className="mt-10 flex justify-center">
+              <Button size="lg" href="/">
+                Bosh sahifaga qaytish
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nomdor Choyxonasi — Milliy ta’m va shinam muhit</title>
+  <meta name="description" content="Nomdor Choyxonasi — milliy taomlar, xushbo‘y choylar, oilaviy dam olish va tadbirlar uchun shinam maskan." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #fff8ed;
+      --dark: #20140c;
+      --muted: #755f4b;
+      --brand: #b56b25;
+      --brand-dark: #7e4312;
+      --green: #355b33;
+      --card: #ffffff;
+      --line: rgba(32, 20, 12, .12);
+      --shadow: 0 24px 70px rgba(89, 51, 18, .16);
+      --radius: 26px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: Inter, sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+    .container { width: min(1180px, calc(100% - 36px)); margin: auto; }
+
+    .topbar {
+      background: var(--dark);
+      color: #fff2de;
+      font-size: 14px;
+      padding: 10px 0;
+    }
+    .topbar .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 99;
+      background: rgba(255, 248, 237, .9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner {
+      height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      font-size: 21px;
+    }
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--brand), #df9c4f);
+      color: white;
+      box-shadow: 0 10px 26px rgba(181, 107, 37, .35);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      color: #4b3828;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .nav-links a:hover { color: var(--brand); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 800;
+      transition: .25s ease;
+    }
+    .btn-primary { background: var(--brand); color: white; box-shadow: 0 14px 30px rgba(181,107,37,.28); }
+    .btn-primary:hover { background: var(--brand-dark); transform: translateY(-2px); }
+    .btn-outline { border: 1px solid var(--line); background: rgba(255,255,255,.65); }
+    .btn-outline:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-2px); }
+
+    .hero {
+      position: relative;
+      padding: 88px 0 70px;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -140px -120px auto auto;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(181,107,37,.26), transparent 68%);
+      z-index: -1;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 54px;
+      align-items: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(181,107,37,.12);
+      color: var(--brand-dark);
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+    h1, h2, h3 { line-height: 1.08; }
+    h1 {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(44px, 6vw, 82px);
+      letter-spacing: -1.8px;
+      margin-bottom: 22px;
+    }
+    .hero p {
+      font-size: 19px;
+      color: var(--muted);
+      max-width: 620px;
+      margin-bottom: 30px;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 34px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      max-width: 620px;
+    }
+    .stat {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255,255,255,.62);
+    }
+    .stat b { display: block; font-size: 28px; color: var(--brand-dark); }
+    .stat span { color: var(--muted); font-weight: 700; font-size: 14px; }
+
+    .hero-card {
+      position: relative;
+      min-height: 560px;
+      border-radius: 38px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(rgba(32,20,12,.05), rgba(32,20,12,.45)),
+        url('https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?q=80&w=1200&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center;
+    }
+    .floating-card {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      padding: 22px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, .9);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.18);
+    }
+    .floating-card h3 { font-size: 24px; margin-bottom: 8px; }
+    .floating-card p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    section { padding: 82px 0; }
+    .section-head { max-width: 760px; margin: 0 auto 40px; text-align: center; }
+    .eyebrow { color: var(--brand); font-weight: 900; text-transform: uppercase; letter-spacing: 1.6px; font-size: 13px; margin-bottom: 10px; }
+    h2 { font-family: "Playfair Display", serif; font-size: clamp(34px, 4vw, 56px); margin-bottom: 16px; }
+    .section-head p { color: var(--muted); font-size: 18px; }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+    .feature, .menu-card, .service-card, .faq-item, .contact-card {
+      background: rgba(255,255,255,.78);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 34px rgba(89, 51, 18, .08);
+    }
+    .feature { padding: 26px; }
+    .icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      background: rgba(181,107,37,.13);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      margin-bottom: 18px;
+    }
+    .feature h3, .service-card h3 { font-size: 21px; margin-bottom: 9px; }
+    .feature p, .service-card p { color: var(--muted); }
+
+    .about {
+      background: #fff1dc;
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 46px;
+      align-items: center;
+    }
+    .about-img {
+      height: 520px;
+      border-radius: 36px;
+      background: url('https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=1200&auto=format&fit=crop') center/cover;
+      box-shadow: var(--shadow);
+    }
+    .check-list { margin-top: 24px; display: grid; gap: 14px; }
+    .check-list li {
+      list-style: none;
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+      color: #4d392a;
+      font-weight: 700;
+    }
+    .check-list li::before { content: "✓"; color: white; background: var(--green); border-radius: 50%; min-width: 24px; height: 24px; display: grid; place-items: center; font-size: 13px; }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .menu-card { overflow: hidden; }
+    .menu-img { height: 230px; background-size: cover; background-position: center; }
+    .menu-body { padding: 24px; }
+    .menu-top { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 10px; }
+    .menu-top h3 { font-size: 23px; }
+    .price { color: var(--brand-dark); font-weight: 900; white-space: nowrap; }
+    .menu-body p { color: var(--muted); margin-bottom: 16px; }
+    .tag { display: inline-block; padding: 7px 11px; border-radius: 999px; background: rgba(53,91,51,.1); color: var(--green); font-weight: 800; font-size: 13px; }
+
+    .services {
+      background: linear-gradient(135deg, #2c1b10, #5b2e0e);
+      color: white;
+    }
+    .services .section-head p, .services .eyebrow { color: #ffd79d; }
+    .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .service-card {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.18);
+      color: white;
+      padding: 28px;
+    }
+    .service-card p { color: #f5d9bb; }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr .8fr;
+      gap: 18px;
+    }
+    .gallery-item {
+      min-height: 240px;
+      border-radius: 28px;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 14px 36px rgba(89, 51, 18, .12);
+    }
+    .gallery-item.big { grid-row: span 2; min-height: 500px; }
+
+    .reviews { background: #fff1dc; }
+    .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .review {
+      padding: 28px;
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .stars { color: #d8862f; letter-spacing: 2px; margin-bottom: 14px; }
+    .review p { color: var(--muted); margin-bottom: 18px; }
+    .review b { display: block; }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .contact-card { padding: 30px; }
+    .contact-line { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .contact-line:last-child { border-bottom: 0; }
+    .contact-line strong { display: block; margin-bottom: 3px; }
+    .contact-line span { color: var(--muted); }
+    form { display: grid; gap: 14px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fffaf3;
+      font: inherit;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(181,107,37,.12); }
+    textarea { min-height: 128px; resize: vertical; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .faq-wrap { max-width: 900px; margin: auto; display: grid; gap: 14px; }
+    details.faq-item { padding: 0; overflow: hidden; }
+    summary {
+      cursor: pointer;
+      padding: 22px 24px;
+      font-weight: 900;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--brand); font-size: 22px; }
+    details[open] summary::after { content: "−"; }
+    details p { padding: 0 24px 24px; color: var(--muted); }
+
+    .cta {
+      padding: 44px;
+      border-radius: 38px;
+      background:
+        linear-gradient(90deg, rgba(32,20,12,.86), rgba(32,20,12,.48)),
+        url('https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=1400&auto=format&fit=crop') center/cover;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      box-shadow: var(--shadow);
+    }
+    .cta h2 { margin-bottom: 10px; }
+    .cta p { color: #ffe6c8; max-width: 620px; }
+
+    footer {
+      background: var(--dark);
+      color: #fff3df;
+      padding: 60px 0 24px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .7fr .7fr .9fr;
+      gap: 34px;
+      margin-bottom: 38px;
+    }
+    footer h3 { margin-bottom: 16px; }
+    footer p, footer a { color: #d9c5ad; }
+    .footer-links { display: grid; gap: 10px; }
+    .copyright {
+      border-top: 1px solid rgba(255,255,255,.14);
+      padding-top: 22px;
+      color: #c5aa8c;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 980px) {
+      .nav-links { display: none; }
+      .hero-grid, .about-grid, .contact-grid { grid-template-columns: 1fr; }
+      .features, .menu-grid, .services-grid, .review-grid, .footer-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-card { min-height: 460px; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; }
+      .gallery-item.big { grid-column: span 2; }
+      .cta { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { display: none; }
+      .nav-inner { height: 70px; }
+      .hero { padding-top: 52px; }
+      .stats, .features, .menu-grid, .services-grid, .review-grid, .footer-grid, .two-col, .gallery-grid { grid-template-columns: 1fr; }
+      .gallery-item.big { grid-column: auto; min-height: 310px; }
+      section { padding: 62px 0; }
+      .cta { padding: 28px; border-radius: 28px; }
+      .about-img { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <span>📍 Toshkent shahri, markaziy manzil</span>
+      <span>⏰ Har kuni: 09:00 — 23:00</span>
+      <span>☎ +998 90 123 45 67</span>
+    </div>
+  </div>
+
+  <nav class="navbar">
+    <div class="container nav-inner">
+      <a href="#home" class="logo">
+        <span class="logo-mark">☕</span>
+        <span>Nomdor Choyxonasi</span>
+      </a>
+      <div class="nav-links">
+        <a href="#about">Biz haqimizda</a>
+        <a href="#menu">Menyu</a>
+        <a href="#services">Xizmatlar</a>
+        <a href="#gallery">Galereya</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Aloqa</a>
+      </div>
+      <a class="btn btn-primary" href="#contact">Joy band qilish</a>
+    </div>
+  </nav>
+
+  <header id="home" class="hero">
+    <div class="container hero-grid">
+      <div>
+        <div class="badge">✨ Milliy ta’m, shinam muhit</div>
+        <h1>Nomdor Choyxonasida haqiqiy dam olish zavqini his qiling</h1>
+        <p>Oilaviy uchrashuvlar, do‘stlar davrasi, biznes tushlik va maxsus tadbirlar uchun qulay, toza va milliy uslubdagi maskan.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#menu">Menyuni ko‘rish</a>
+          <a class="btn btn-outline" href="#contact">Biz bilan bog‘lanish</a>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>20+</b><span>Milliy taomlar</span></div>
+          <div class="stat"><b>150+</b><span>Mehmon sig‘imi</span></div>
+          <div class="stat"><b>4.9</b><span>Mijozlar bahosi</span></div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="floating-card">
+          <h3>Bugungi tavsiya: Osh va ko‘k choy</h3>
+          <p>Yangi tayyorlangan osh, tandir non va xushbo‘y choy bilan kuningizni yanada yoqimli qiling.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Nima uchun biz?</div>
+        <h2>Mehmonlarimiz uchun har bir detal muhim</h2>
+        <p>Nomdor Choyxonasi — bu faqat ovqatlanish joyi emas, balki xotirjam suhbat, mazali taom va iliq muhit jamlangan maskan.</p>
+      </div>
+      <div class="features">
+        <div class="feature"><div class="icon">🍽️</div><h3>Halol va sifatli</h3><p>Taomlarimiz har kuni yangi mahsulotlardan tayyorlanadi.</p></div>
+        <div class="feature"><div class="icon">🫖</div><h3>Xushbo‘y choylar</h3><p>Ko‘k, qora, limonli va maxsus damlama choylar mavjud.</p></div>
+        <div class="feature"><div class="icon">🏡</div><h3>Oilaviy muhit</h3><p>Oila, do‘stlar va mehmonlar uchun alohida joylar.</p></div>
+        <div class="feature"><div class="icon">🎉</div><h3>Tadbirlar</h3><p>Tug‘ilgan kun, uchrashuv va kichik marosimlar uchun qulay.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="about">
+    <div class="container about-grid">
+      <div class="about-img"></div>
+      <div>
+        <div class="eyebrow">Biz haqimizda</div>
+        <h2>Milliy an’ana va zamonaviy xizmat uyg‘unligi</h2>
+        <p>Nomdor Choyxonasi mehmonlarga milliy taomlar, sifatli xizmat va yoqimli muhit taqdim etadi. Biz uchun har bir mehmon aziz, har bir buyurtma esa mas’uliyatdir.</p>
+        <ul class="check-list">
+          <li>Keng, shinam va toza zallar</li>
+          <li>Tezkor xizmat va xushmuomala jamoa</li>
+          <li>Oilaviy va alohida suhbat xonalari</li>
+          <li>Oldindan stol band qilish imkoniyati</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="menu">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Mashhur menyu</div>
+        <h2>Mehmonlarimiz sevgan taomlar</h2>
+        <p>Quyidagi narxlar namunaviy. O‘zingizga yoqqan taomni tanlang va bizga murojaat qiling.</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1603133872878-684f208fb84b?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>To‘y oshi</h3><span class="price">35 000 so‘m</span></div><p>Sabzi, go‘sht, guruch va ziravorlar bilan tayyorlangan milliy osh.</p><span class="tag">Eng ko‘p buyuriladi</span></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1628294896516-344152572ee8?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>Shashlik</h3><span class="price">18 000 so‘m</span></div><p>Mayin go‘shtdan tayyorlangan, ko‘mirda pishirilgan mazali shashlik.</p><span class="tag">Ko‘mirda pishiriladi</span></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>Sho‘rva</h3><span class="price">28 000 so‘m</span></div><p>Issiq, to‘yimli va xushbo‘y milliy sho‘rva.</p><span class="tag">Issiq taom</span></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>Somsa</h3><span class="price">8 000 so‘m</span></div><p>Tandirda pishgan, ichida go‘shtli mazali somsa.</p><span class="tag">Tandir mahsuloti</span></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>Ko‘k choy</h3><span class="price">6 000 so‘m</span></div><p>Xushbo‘y, damlangan ko‘k choy — suhbatlar uchun eng yaxshi tanlov.</p><span class="tag">Choyxona ramzi</span></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-img" style="background-image:url('https://images.unsplash.com/photo-1551024506-0bccd828d307?q=80&w=900&auto=format&fit=crop')"></div>
+          <div class="menu-body"><div class="menu-top"><h3>Shirinliklar</h3><span class="price">12 000 so‘m</span></div><p>Choy bilan mos keladigan turli shirinliklar va desertlar.</p><span class="tag">Choy bilan zo‘r</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="services" class="services">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Xizmatlar</div>
+        <h2>Har qanday uchrashuv uchun mos joy</h2>
+        <p>Bizda oddiy tushlikdan tortib, oilaviy tadbirgacha hammasi uchun qulay sharoit bor.</p>
+      </div>
+      <div class="services-grid">
+        <div class="service-card"><div class="icon">👨‍👩‍👧</div><h3>Oilaviy zallar</h3><p>Farzandlar va oila a’zolari bilan bemalol dam olish uchun sokin joylar.</p></div>
+        <div class="service-card"><div class="icon">💼</div><h3>Biznes tushlik</h3><p>Hamkorlar bilan uchrashuv va suhbatlar uchun qulay xizmat.</p></div>
+        <div class="service-card"><div class="icon">🎂</div><h3>Tug‘ilgan kun</h3><p>Kichik bayramlar va maxsus kunlar uchun stol bezash imkoniyati.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Galereya</div>
+        <h2>Choyxonamiz muhitidan lavhalar</h2>
+        <p>Shinam interyer, milliy taomlar va yoqimli xizmat — bularning barchasi bir joyda.</p>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-item big" style="background-image:url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop')"></div>
+        <div class="gallery-item" style="background-image:url('https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=900&auto=format&fit=crop')"></div>
+        <div class="gallery-item" style="background-image:url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=900&auto=format&fit=crop')"></div>
+        <div class="gallery-item" style="background-image:url('https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=900&auto=format&fit=crop')"></div>
+        <div class="gallery-item" style="background-image:url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=900&auto=format&fit=crop')"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="reviews">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Mijozlar fikri</div>
+        <h2>Mehmonlarimiz biz haqimizda</h2>
+      </div>
+      <div class="review-grid">
+        <div class="review"><div class="stars">★★★★★</div><p>Osh juda mazali, xizmat tez. Oilam bilan kelgan edik, hammaga yoqdi.</p><b>Azizbek</b><span>Doimiy mijoz</span></div>
+        <div class="review"><div class="stars">★★★★★</div><p>Choyxona muhiti juda shinam. Do‘stlar bilan suhbat qilish uchun zo‘r joy.</p><b>Dilnoza</b><span>Mehmon</span></div>
+        <div class="review"><div class="stars">★★★★★</div><p>Tadbirimizni shu yerda o‘tkazdik. Stol, xizmat va taomlar juda yaxshi.</p><b>Jasur</b><span>Tadbir mijozi</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="cta">
+        <div>
+          <h2>Bugunoq stol band qiling</h2>
+          <p>Dam olish, uchrashuv yoki tadbir uchun qulay vaqtni tanlang. Biz sizga eng yaxshi joyni tayyorlab qo‘yamiz.</p>
+        </div>
+        <a href="#contact" class="btn btn-primary">Bron qilish</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Savol-javob</div>
+        <h2>Ko‘p so‘raladigan savollar</h2>
+      </div>
+      <div class="faq-wrap">
+        <details class="faq-item" open><summary>Oldindan stol band qilish mumkinmi?</summary><p>Ha, telefon orqali yoki pastdagi forma orqali stol band qilishingiz mumkin.</p></details>
+        <details class="faq-item"><summary>Oilaviy xonalar bormi?</summary><p>Ha, oilaviy va alohida suhbat uchun qulay xonalar mavjud.</p></details>
+        <details class="faq-item"><summary>Tadbir o‘tkazish mumkinmi?</summary><p>Ha, tug‘ilgan kun, uchrashuv va kichik marosimlar uchun xizmat ko‘rsatamiz.</p></details>
+        <details class="faq-item"><summary>Yetkazib berish xizmati bormi?</summary><p>Hozircha ayrim hududlarga yetkazib berish mavjud. Batafsil ma’lumot uchun telefon orqali bog‘laning.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow">Aloqa</div>
+        <h2>Biz bilan bog‘laning</h2>
+        <p>Savolingiz bormi yoki stol band qilmoqchimisiz? Ma’lumotlaringizni qoldiring.</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <h3>Aloqa ma’lumotlari</h3>
+          <div class="contact-line"><div>📍</div><div><strong>Manzil</strong><span>Toshkent shahri, Markaziy ko‘cha 12-uy</span></div></div>
+          <div class="contact-line"><div>☎</div><div><strong>Telefon</strong><span>+998 90 123 45 67</span></div></div>
+          <div class="contact-line"><div>💬</div><div><strong>Telegram</strong><span>@nomdor_choyxonasi</span></div></div>
+          <div class="contact-line"><div>⏰</div><div><strong>Ish vaqti</strong><span>Har kuni 09:00 — 23:00</span></div></div>
+        </div>
+        <div class="contact-card">
+          <form onsubmit="event.preventDefault(); alert('Rahmat! So‘rovingiz qabul qilindi.');">
+            <div class="two-col">
+              <input type="text" placeholder="Ismingiz" required>
+              <input type="tel" placeholder="Telefon raqamingiz" required>
+            </div>
+            <div class="two-col">
+              <select required>
+                <option value="">Xizmat turini tanlang</option>
+                <option>Stol band qilish</option>
+                <option>Oilaviy xona</option>
+                <option>Tadbir uchun joy</option>
+                <option>Yetkazib berish</option>
+              </select>
+              <input type="date" required>
+            </div>
+            <textarea placeholder="Qo‘shimcha izoh"></textarea>
+            <button class="btn btn-primary" type="submit">So‘rov yuborish</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="logo" style="margin-bottom:16px;"><span class="logo-mark">☕</span><span>Nomdor Choyxonasi</span></div>
+          <p>Milliy ta’m, shinam muhit va samimiy xizmatni qadrlaydiganlar uchun eng yaxshi maskan.</p>
+        </div>
+        <div>
+          <h3>Bo‘limlar</h3>
+          <div class="footer-links"><a href="#about">Biz haqimizda</a><a href="#menu">Menyu</a><a href="#services">Xizmatlar</a><a href="#contact">Aloqa</a></div>
+        </div>
+        <div>
+          <h3>Xizmatlar</h3>
+          <div class="footer-links"><a href="#">Oilaviy zal</a><a href="#">Tadbirlar</a><a href="#">Biznes tushlik</a><a href="#">Bron qilish</a></div>
+        </div>
+        <div>
+          <h3>Bog‘lanish</h3>
+          <p>+998 90 123 45 67</p>
+          <p>@nomdor_choyxonasi</p>
+          <p>Toshkent shahri</p>
+        </div>
+      </div>
+      <div class="copyright">
+        <span>© 2026 Nomdor Choyxonasi. Barcha huquqlar himoyalangan.</span>
+        <span>Websayt HTML/CSS asosida tayyorlandi.</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -44,6 +44,12 @@ export class LandingController {
     return this.svc.chargeCreateSubscription(req.user.sub, dto.months);
   }
 
+  @Post("charge-ai-starter")
+  @UseGuards(JwtAccessGuard)
+  async chargeAiStarter(@Req() req: { user: { sub: number } }) {
+    return this.svc.chargeAiStarter(req.user.sub);
+  }
+
   @Post("upsert")
   @UseGuards(JwtAccessGuard)
   async upsert(

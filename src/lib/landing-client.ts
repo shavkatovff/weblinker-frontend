@@ -10,6 +10,13 @@ export async function chargeLandingCreatePackage(
   });
 }
 
+/** AI bilan landing boshlang‘ich paketi — balansdan bir martalik yechim */
+export async function chargeLandingAiStarter(): Promise<{ ok: true }> {
+  return api<{ ok: true }>("/landing/charge-ai-starter", {
+    method: "POST",
+  });
+}
+
 export async function upsertLanding(body: {
   publicationId?: string;
   slug: string;

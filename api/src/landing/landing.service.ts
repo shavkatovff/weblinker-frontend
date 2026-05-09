@@ -79,6 +79,28 @@ export class LandingService {
     return { ok: true };
   }
 
+  /** AI bilan landing — boshlang‘ich paket (bir martalik) */
+  async chargeAiStarter(userId: number): Promise<{ ok: true }> {
+    const priceSom = 5000;
+    const price = new Prisma.Decimal(priceSom);
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException("Foydalanuvchi topilmadi");
+      }
+      if (user.balance.lt(price)) {
+        throw new BadRequestException(
+          `Balans yetarli emas. AI paket: ${priceSom.toLocaleString("uz-UZ")} so'm. Joriy balans: ${Number(user.balance).toLocaleString("uz-UZ")} so'm.`,
+        );
+      }
+      await tx.user.update({
+        where: { id: userId },
+        data: { balance: { decrement: price } },
+      });
+    });
+    return { ok: true };
+  }
+
   publicationToSiteJson(p: LandingPublication) {
     const trialEndsAt = new Date(p.createdAt);
     trialEndsAt.setDate(trialEndsAt.getDate() + 10);

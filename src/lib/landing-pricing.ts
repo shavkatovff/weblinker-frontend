@@ -1,6 +1,9 @@
 import type { VizitkaPackage } from "./vizitka-packages";
 import type { PublicPricing } from "./vizitka-pricing";
 
+/** AI bilan landing boshlang‘ich paketi (bir martalik, UI va backend bilan mos) */
+export const LANDING_AI_STARTER_PRICE_SOM = 5_000;
+
 /** Sinxron fallback — API `landingPricesSom` bilan mos */
 export const LANDING_PRICE_SOM = {
   "6": 780_000,
