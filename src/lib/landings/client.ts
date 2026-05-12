@@ -26,7 +26,8 @@ async function readJsonResponse<T>(r: Response): Promise<T> {
   const text = await r.text();
   if (!r.ok) {
     const fromApi = errorMessageFromJsonText(text);
-    throw new Error(fromApi ?? text.slice(0, 500) || `HTTP ${r.status}`);
+    const fallback = text.slice(0, 500) || `HTTP ${r.status}`;
+    throw new Error(fromApi ?? fallback);
   }
   try {
     return JSON.parse(text) as T;
