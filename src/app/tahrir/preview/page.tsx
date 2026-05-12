@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import { TahrirPlayground } from "@/components/tahrir/tahrir-playground";
+import { TahrirLandingPreview } from "@/components/tahrir/tahrir-landing-preview";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -12,14 +12,14 @@ const display = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Tahrir — demo sahifa",
-  description:
-    "Landingni tahrirlang; o‘ngda jonli ko‘rinish. «Ko‘rish» — to‘liq ekranda alohida sahifa.",
+  title: "Ko‘rish — landing",
+  description: "Tahrir qilingan landingni tahrirsiz ko‘rish.",
+  robots: { index: false, follow: false },
 };
 
-export default function TahrirPage() {
+export default function TahrirPreviewPage() {
   return (
-    <TahrirPlayground
+    <TahrirLandingPreview
       titleFontClassName={display.className}
       bodyFontClassName={inter.className}
     />

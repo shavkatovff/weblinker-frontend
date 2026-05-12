@@ -26,6 +26,7 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
       "Yangi tayyorlangan osh, tandir non va xushbo‘y choy bilan kuningizni yanada yoqimli qiling.",
     aboutImageUrl:
       "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1200&auto=format&fit=crop",
+    aboutBadge: "Biz haqimizda",
     aboutTitle: "Milliy an’ana va zamonaviy xizmat uyg‘unligi",
     aboutLead:
       "Nomdor Choyxonasi mehmonlarga milliy taomlar, sifatli xizmat va yoqimli muhit taqdim etadi. Biz uchun har bir mehmon aziz, har bir buyurtma esa mas’uliyatdir.",
@@ -35,6 +36,7 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
       "Oilaviy va alohida suhbat xonalari",
       "Oldindan stol band qilish imkoniyati",
     ],
+    faqBadge: "Savol-javob",
     faqTitle: "Ko‘p so‘raladigan savollar",
     faqItems: [
       {
@@ -54,6 +56,7 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
         a: "Hozircha ayrim hududlarga yetkazib berish mavjud. Batafsil ma’lumot uchun telefon orqali bog‘laning.",
       },
     ],
+    contactBadge: "Aloqa",
     contactTitle: "Biz bilan bog‘laning",
     contactSubtitle: "Savolingiz bormi yoki stol band qilmoqchimisiz? Ma’lumotlaringizni qoldiring.",
     contactInfoTitle: "Aloqa ma’lumotlari",
@@ -67,6 +70,8 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
     hoursLabel: "Ish vaqti",
     hours: "Har kuni 09:00 — 23:00",
     footerBrandName: "Nomdor Choyxonasi",
+    footerTagline:
+      "Milliy ta’m va shinam muhitda oilaviy uchrashuvlar, totuv da’fda va biznes tushliklar uchun maskan.",
     footerCol2Title: "Tezkor havolalar",
     footerCol3Title: "Xizmatlar",
     footerCol4Title: "Kontakt",
@@ -81,6 +86,5 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
     footerTelegram: "@nomdor_choyxonasi",
     footerCity: "Toshkent",
     footerCopyrightSuffix: "Nomdor Choyxonasi. Barcha huquqlar himoyalangan.",
-    footerTechLine: "WebLinker demo",
   };
 }

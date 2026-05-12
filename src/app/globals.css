@@ -34,3 +34,119 @@ body {
   background: #000;
   color: #fff;
 }
+
+/* ------------------------------------------------------------------ */
+/* Choyxona landing — animatsiyalar (CSS-only, mobil-do‘st)            */
+/* ------------------------------------------------------------------ */
+
+@keyframes choy-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes choy-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes choy-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes choy-float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
+}
+
+@keyframes choy-pulse-ring {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes choy-shine {
+  0% { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%) skewX(-12deg); }
+}
+
+.choy-anim-fade-up {
+  opacity: 0;
+  animation: choy-fade-up 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.choy-anim-fade-in { animation: choy-fade-in 0.9s ease-out both; }
+.choy-anim-zoom-in {
+  animation: choy-zoom-in 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.choy-anim-float { animation: choy-float-slow 7s ease-in-out infinite; }
+.choy-anim-float-delay { animation: choy-float-slow 9s ease-in-out 0.6s infinite; }
+
+.choy-card {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+.choy-card:hover {
+  transform: translateY(-3px);
+}
+
+.choy-cta {
+  position: relative;
+  overflow: hidden;
+}
+.choy-cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: translateX(-160%) skewX(-12deg);
+  pointer-events: none;
+}
+.choy-cta:hover::after {
+  animation: choy-shine 0.9s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choy-anim-fade-up,
+  .choy-anim-fade-in,
+  .choy-anim-zoom-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .choy-anim-float,
+  .choy-anim-float-delay {
+    animation: none !important;
+  }
+  .choy-cta::after { display: none; }
+}

@@ -1,13 +1,23 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength, Matches } from "class-validator";
+import {
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  Matches,
+} from 'class-validator';
 
-const STATUSES = ["DRAFT", "ACTIVE", "PAUSED", "EXPIRED"] as const;
+const STATUSES = ['DRAFT', 'ACTIVE', 'PAUSED', 'EXPIRED'] as const;
 
 export class CreateVizitkaDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
   @MaxLength(64)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: "Faqat kichik harf, raqam va -" })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'Faqat kichik harf, raqam va -',
+  })
   name!: string;
 
   @IsOptional()

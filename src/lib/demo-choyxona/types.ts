@@ -27,11 +27,17 @@ export type DemoChoyxonaContent = {
   heroCardTitle: string;
   heroCardText: string;
   aboutImageUrl: string;
+  /** About bo‘limidagi kichik yorliq (pill) matni */
+  aboutBadge: string;
   aboutTitle: string;
   aboutLead: string;
   aboutBullets: string[];
+  /** FAQ bo‘limidagi kichik yorliq (pill) matni */
+  faqBadge: string;
   faqTitle: string;
   faqItems: DemoChoyxonaFaqItem[];
+  /** Aloqa bo‘limidagi kichik yorliq (pill) matni */
+  contactBadge: string;
   contactTitle: string;
   contactSubtitle: string;
   contactInfoTitle: string;
@@ -45,6 +51,8 @@ export type DemoChoyxonaContent = {
   hoursLabel: string;
   hours: string;
   footerBrandName: string;
+  /** Footer brend nomi ostidagi qisqa ta’rif */
+  footerTagline: string;
   footerCol2Title: string;
   footerCol3Title: string;
   footerCol4Title: string;
@@ -59,5 +67,4 @@ export type DemoChoyxonaContent = {
   footerTelegram: string;
   footerCity: string;
   footerCopyrightSuffix: string;
-  footerTechLine: string;
 };

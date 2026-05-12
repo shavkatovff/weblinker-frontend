@@ -285,40 +285,4 @@ export class AdminService {
     };
   }
 
-  async listLandingInquiries(take = 100, skip = 0) {
-    const [total, rows] = await Promise.all([
-      this.prisma.landingInquiry.count(),
-      this.prisma.landingInquiry.findMany({
-        orderBy: { createdAt: "desc" },
-        take: Math.min(take, 500),
-        skip,
-        include: {
-          landing: { select: { slug: true, id: true } },
-          owner: {
-            select: {
-              id: true,
-              publicId: true,
-              number: true,
-              fullName: true,
-              telegramId: true,
-            },
-          },
-        },
-      }),
-    ]);
-    return {
-      total,
-      items: rows.map((r) => ({
-        id: r.id,
-        createdAt: r.createdAt.toISOString(),
-        visitorName: r.visitorName,
-        visitorPhone: r.visitorPhone,
-        visitorTelegram: r.visitorTelegram,
-        message: r.message,
-        landingSlug: r.landing.slug,
-        landingId: r.landing.id,
-        owner: r.owner,
-      })),
-    };
-  }
 }

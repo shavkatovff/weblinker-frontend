@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { fetchVizitkaById } from "@/lib/vizitka-client";
-import { fetchLandingPublication } from "@/lib/landing-client";
 import { getSiteById, saveSite } from "@/lib/store/store";
 import { normalizeSite } from "@/lib/store/normalize";
 import type { UnknownSite } from "@/lib/store/types";
@@ -32,22 +31,6 @@ export function EditorLoader({ id }: { id: string }) {
     return false;
   }, [id]);
 
-  const pullLandingRemote = useCallback(async (): Promise<boolean> => {
-    try {
-      const remote = await fetchLandingPublication(id);
-      if (remote?.site) {
-        const n = normalizeSite(remote.site as UnknownSite);
-        saveSite(n);
-        setSite(n);
-        setServerBacked(true);
-        return true;
-      }
-    } catch {
-      /* tarmoq */
-    }
-    return false;
-  }, [id]);
-
   useEffect(() => {
     let cancel = false;
     const local = getSiteById(id);
@@ -62,22 +45,15 @@ export function EditorLoader({ id }: { id: string }) {
       if (okV) {
         setServerBacked(true);
         setReady(true);
-      } else {
-        const okL = await pullLandingRemote();
-        if (cancel) return;
-        if (okL) {
-          setServerBacked(true);
-          setReady(true);
-        } else if (!local) {
-          setSite(undefined);
-          setReady(true);
-        }
+      } else if (!local) {
+        setSite(undefined);
+        setReady(true);
       }
     })();
     return () => {
       cancel = true;
     };
-  }, [id, pullRemote, pullLandingRemote]);
+  }, [id, pullRemote]);
 
   useEffect(() => {
     if (searchParams.get("click") !== "1") return;

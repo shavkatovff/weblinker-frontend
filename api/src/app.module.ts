@@ -11,7 +11,7 @@ import { VizitkaModule } from './vizitka/vizitka.module';
 import { PaymentModule } from './payment/payment.module';
 import { AdminModule } from './admin/admin.module';
 import { SettingsModule } from './settings/settings.module';
-import { LandingModule } from './landing/landing.module';
+import { LandingsModule } from './landings/landings.module';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { LandingModule } from './landing/landing.module';
     VizitkaModule,
     PaymentModule,
     AdminModule,
-    LandingModule,
+    LandingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

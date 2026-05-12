@@ -200,15 +200,15 @@ export function CreateSiteForm() {
       setStep(1);
     }
     if (l === "6" || l === "12") {
-      setLandingTier(Number(l) as 6 | 12);
-      setStep(1);
+      sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
+      router.replace("/tahrir");
+      return;
     }
     if (aiPending === "1") {
       sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
       void chargeLandingAiStarter()
         .then(() => {
-          setLandingTier("ai");
-          setStep(1);
+          router.replace("/tahrir");
         })
         .catch((e) => {
           const msg =
@@ -219,6 +219,7 @@ export function CreateSiteForm() {
                 : "Balansdan yechilmadi";
           setFinishError(msg);
         });
+      return;
     }
 
     sessionStorage.removeItem(SESSION_SUB_MONTHS);
@@ -318,8 +319,7 @@ export function CreateSiteForm() {
       if (tier === "free") {
         sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
         sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
-        setLandingTier("free");
-        setStep(1);
+        router.push("/tahrir");
         return;
       }
       if (tier === "ai") {
@@ -334,8 +334,7 @@ export function CreateSiteForm() {
           );
           if (need === 0) {
             await chargeLandingAiStarter();
-            setLandingTier("ai");
-            setStep(1);
+            router.push("/tahrir");
             return;
           }
           sessionStorage.setItem(SESSION_LANDING_AI_PENDING, "1");
@@ -370,8 +369,7 @@ export function CreateSiteForm() {
           computeClickTopUpNeedSom(price, me.user.balance),
         );
         if (need === 0) {
-          setLandingTier(tier);
-          setStep(1);
+          router.push("/tahrir");
           return;
         }
         sessionStorage.setItem(SESSION_LANDING_SUB_MONTHS, String(tier));
@@ -396,7 +394,7 @@ export function CreateSiteForm() {
         setTierPayLoading(null);
       }
     },
-    [landingPriceByMonths],
+    [landingPriceByMonths, router],
   );
 
   const handleFinish = async () => {
@@ -961,6 +959,10 @@ function LandingPackagePicker({
     const list = buildLandingPackages(pricing);
     return list.find((p) => p.months === 6) ?? list[0];
   }, [pricing]);
+  const pkg12 = useMemo(() => {
+    const list = buildLandingPackages(pricing);
+    return list.find((p) => p.months === 12) ?? list[list.length - 1];
+  }, [pricing]);
   const busy = payingTier !== null;
   return (
     <div>
@@ -971,14 +973,14 @@ function LandingPackagePicker({
         <p className="mt-2 text-sm text-neutral-600">
           <strong className="font-medium text-neutral-800">Bepul</strong> — tayyor shablon asosida;
           yoki <strong className="font-medium text-neutral-800">AI</strong> bilan qisqa savollar orqali
-          landing · yoki <strong className="font-medium text-neutral-800">6 oylik</strong> obuna.
-          Yetishmaydigan summa{" "}
+          landing · <strong className="font-medium text-neutral-800">6 oy</strong> yoki{" "}
+          <strong className="font-medium text-neutral-800">1 yillik</strong> obuna. Yetishmaydigan summa{" "}
           <strong className="font-medium text-neutral-800">CLICK</strong> orqali balansga
           o&apos;tadi; obuna paketi saytni yakunlaganingizda balansdan yechiladi.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <button
           type="button"
           disabled={busy}
@@ -1033,10 +1035,10 @@ function LandingPackagePicker({
           type="button"
           disabled={busy}
           onClick={() => void onSelectTier(6)}
-          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-black bg-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)] transition-all disabled:pointer-events-none disabled:opacity-50"
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-neutral-300 bg-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.25)] transition-all hover:border-black hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
         >
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-            Obuna
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-neutral-800 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            Obuna · 6 oy
           </span>
           <div className="mt-1">
             <p className="text-lg font-semibold text-black">{pkg6.title}</p>
@@ -1050,6 +1052,30 @@ function LandingPackagePicker({
           </div>
           <span className="mt-auto pt-2 text-sm font-semibold text-black">
             {payingTier === 6 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onSelectTier(12)}
+          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-black bg-gradient-to-b from-amber-50/70 to-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)] transition-all hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+            Obuna · 1 yil
+          </span>
+          <div className="mt-1">
+            <p className="text-lg font-semibold text-black">{pkg12.title}</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+              {formatSom(pkg12.priceSom)}
+            </p>
+            <p className="mt-1 text-xs text-neutral-600">{pkg12.subtitle}</p>
+            {pkg12.hint ? (
+              <p className="mt-2 text-[11px] text-neutral-500">{pkg12.hint}</p>
+            ) : null}
+          </div>
+          <span className="mt-auto pt-2 text-sm font-semibold text-black">
+            {payingTier === 12 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
           </span>
         </button>
       </div>

@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { urlencoded } from 'express';
+import { json, urlencoded } from 'express';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
@@ -20,6 +20,8 @@ async function bootstrap() {
 
   /** CLICK Prepare/Complete odatda application/x-www-form-urlencoded yuboradi */
   app.use(urlencoded({ extended: true, limit: '256kb' }));
+  /** Landing kontenti hero/about rasmlari `data:` URL ko‘rinishida yuborilishi mumkin */
+  app.use(json({ limit: '6mb' }));
   const frontendOrigins = process.env.FRONTEND_ORIGIN
     ? process.env.FRONTEND_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:8000'];

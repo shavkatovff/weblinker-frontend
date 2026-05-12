@@ -38,8 +38,7 @@ model User {
 
   vizitkas Vizitka[]
   payments Payment[]
-  landingPublications    LandingPublication[]
-  landingInquiriesReceived LandingInquiry[] @relation("LandingInquiryOwner")
+  landings Landing[]
 
   @@map("users")
 }
@@ -91,7 +90,7 @@ model Vizitka {
   /// Foydalanuvchini `users.public_id` orqali bog‘lash (ichki `id` emas)
   ownerPublicId String @map("owner_public_id")
 
-  plan  String  @default("vizitka")
+  plan  String  @default("10kun")
   /// Obuna muddati tugaguncha
   expiredAt DateTime? @map("expired_at")
 
@@ -165,39 +164,77 @@ model AppSettings {
   @@map("app_settings")
 }
 
-/// Landing sahifa — slug bo‘yicha ochiq URL (vizitka bilan bir yo‘nalishda raqobat: bir xil slug bo‘lmasligi kerak)
-model LandingPublication {
-  id            String   @id @default(cuid())
-  ownerPublicId String   @map("owner_public_id")
-  slug          String   @unique
-  templateId    String   @default("simple") @map("template_id")
-  /// `draft` · `published` · `paused` — frontend `SiteStatus` bilan mos
-  status        String   @default("draft")
-  contentJson   Json     @map("content_json")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  owner     User             @relation(fields: [ownerPublicId], references: [publicId], onDelete: Cascade)
-  inquiries LandingInquiry[]
+
+
+
+/// Landing tarif — weblinker.uz/{name} (name noyob slug)
+model Landing {
+  id     String  @id @default(cuid())
+  /// Foydalanuvchini `users.public_id` orqali bog‘lash (ichki `id` emas)
+  user   User   @relation(fields: [ownerPublicId], references: [publicId], onDelete: Cascade)
+  ownerPublicId String @map("owner_public_id")
+
+  /// Manzil: /{name} noyob (faqat a-z, 0-9, -)
+  name  String  @unique
+  plan  String  @default("10kun")
+  /// Obuna muddati tugaguncha
+  expiredAt DateTime? @map("expired_at")
+
+  /// Bo'limlarni yoqish / o'chirish
+  blockHeader   Boolean  @default(true) @map("block_header")
+  blockHero     Boolean  @default(true) @map("block_hero")
+  blockAbout    Boolean  @default(true) @map("block_about")
+  blockFaq      Boolean  @default(true) @map("block_faq")
+  blockContact  Boolean  @default(true) @map("block_contact")
+  blockFooter   Boolean  @default(true) @map("block_footer")
+  /// Dizayn shabloni: "1" | "2" | "3" | "4"
+  blocktheme    String   @default("1") @map("block_theme")
+
+  /// Brend va navigatsiya
+  brandName     String   @default("Mening saytim") @map("brand_name")
+  navAbout      String   @default("Biz haqimizda") @map("nav_about")
+  navFaq        String   @default("FAQ") @map("nav_faq")
+  navContact    String   @default("Aloqa") @map("nav_contact")
+  navCta        String   @default("Bog'lanish") @map("nav_cta")
+
+  /// Hero bo'limi
+  heroTitle     String   @default("") @map("hero_title") @db.Text
+  heroCta       String   @default("Bog'lanish") @map("hero_cta")
+  heroImageUrl  String   @default("") @map("hero_image_url") @db.Text
+
+  /// Biz haqimizda
+  aboutTitle    String   @default("") @map("about_title") @db.Text
+  aboutLead     String   @default("") @map("about_lead") @db.Text
+  aboutImageUrl String   @default("") @map("about_image_url") @db.Text
+  aboutBullet1  String   @default("") @map("about_bullet_1")
+  aboutBullet2  String   @default("") @map("about_bullet_2")
+  aboutBullet3  String   @default("") @map("about_bullet_3")
+  aboutBullet4  String   @default("") @map("about_bullet_4")
+
+  /// FAQ
+  faq1Q         String   @default("") @map("faq_1_q")
+  faq1A         String   @default("") @map("faq_1_a") @db.Text
+  faq2Q         String   @default("") @map("faq_2_q")
+  faq2A         String   @default("") @map("faq_2_a") @db.Text
+  faq3Q         String   @default("") @map("faq_3_q")
+  faq3A         String   @default("") @map("faq_3_a") @db.Text
+  faq4Q         String   @default("") @map("faq_4_q")
+  faq4A         String   @default("") @map("faq_4_a") @db.Text
+
+  /// Aloqa
+  contactSubtitle String @default("") @map("contact_subtitle") @db.Text
+  address         String @default("")
+  phoneTel        String @default("") @map("phone_tel")
+  telegram        String @default("") @map("telegram")
+  hours           String @default("")
+
+  /// Footer
+  footerCopyrightSuffix String @default("") @map("footer_copyright_suffix")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([ownerPublicId])
-  @@map("landing_publications")
-}
-
-model LandingInquiry {
-  id              Int      @id @default(autoincrement())
-  landingId       String   @map("landing_id")
-  ownerUserId     Int      @map("owner_user_id")
-  visitorName     String   @map("visitor_name") @db.VarChar(200)
-  visitorPhone    String   @map("visitor_phone") @db.VarChar(40)
-  visitorTelegram String?  @map("visitor_telegram") @db.VarChar(80)
-  message         String   @db.Text
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  landing LandingPublication @relation(fields: [landingId], references: [id], onDelete: Cascade)
-  owner   User               @relation("LandingInquiryOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
-
-  @@index([landingId])
-  @@index([ownerUserId])
-  @@map("landing_inquiries")
+  @@map("landings")
 }

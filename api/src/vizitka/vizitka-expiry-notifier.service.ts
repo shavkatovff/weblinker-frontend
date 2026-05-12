@@ -1,16 +1,16 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { Cron } from "@nestjs/schedule";
-import { VizitkaStatus } from "@prisma/client";
-import { PrismaService } from "../prisma/prisma.service";
-import { TelegramService, escapeHtml } from "../telegram/telegram.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
+import { VizitkaStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { TelegramService, escapeHtml } from '../telegram/telegram.service';
 
 function publicAppBase(config: ConfigService): string {
-  const explicit = config.get<string>("PUBLIC_APP_URL")?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  const fe = config.get<string>("FRONTEND_ORIGIN")?.split(",")[0]?.trim();
-  if (fe) return fe.replace(/\/$/, "");
-  return "http://localhost:8000";
+  const explicit = config.get<string>('PUBLIC_APP_URL')?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+  const fe = config.get<string>('FRONTEND_ORIGIN')?.split(',')[0]?.trim();
+  if (fe) return fe.replace(/\/$/, '');
+  return 'http://localhost:8000';
 }
 
 @Injectable()
@@ -24,19 +24,26 @@ export class VizitkaExpiryNotifierService {
   ) {}
 
   /** Har 5 daqiqada: muddati o‘tgan aktiv vizitkalarni pausaga o‘tkazadi va Telegram xabar yuboradi */
-  @Cron("*/5 * * * *")
+  @Cron('*/5 * * * *')
   async cronTick() {
-    const off = this.config.get<string>("VIZITKA_EXPIRY_NOTIFY_ENABLED")?.trim();
-    if (off === "0" || off?.toLowerCase() === "false") return;
+    const off = this.config
+      .get<string>('VIZITKA_EXPIRY_NOTIFY_ENABLED')
+      ?.trim();
+    if (off === '0' || off?.toLowerCase() === 'false') return;
     try {
       await this.runOnce();
     } catch (e) {
-      this.log.error("runOnce", e);
+      this.log.error('runOnce', e);
     }
   }
 
   /** Test / manual chaqirish */
-  async runOnce(): Promise<{ paused: number; notified: number; skippedNoTg: number; failed: number }> {
+  async runOnce(): Promise<{
+    paused: number;
+    notified: number;
+    skippedNoTg: number;
+    failed: number;
+  }> {
     const now = new Date();
     const base = publicAppBase(this.config);
 
@@ -66,7 +73,7 @@ export class VizitkaExpiryNotifierService {
     for (const v of candidates) {
       const slug = v.name;
       const title =
-        (v.headline && v.headline.trim()) || slug.replace(/-/g, " ");
+        (v.headline && v.headline.trim()) || slug.replace(/-/g, ' ');
       const dashUrl = `${base}/dashboard/sites/${v.id}`;
 
       const tg = v.user.telegramId?.trim();

@@ -32,7 +32,6 @@ import {
   saveSite,
   slugExists,
 } from "@/lib/store/store";
-import { upsertLanding } from "@/lib/landing-client";
 import { deriveInitials, defaultLandingContent } from "@/lib/store/defaults";
 import { normalizeSite } from "@/lib/store/normalize";
 import { Button } from "@/components/ui/button";
@@ -203,36 +202,8 @@ export function Editor({
 
   const togglePublish = useCallback(async () => {
     const nextStatus = draft.status === "published" ? "draft" : "published";
-    if (draft.type !== "landing") {
-      setDraft((prev) => ({ ...prev, status: nextStatus }));
-      return;
-    }
-    try {
-      const tid =
-        draft.templateId === "default" ||
-        draft.templateId === "simple" ||
-        draft.templateId === "marketing"
-          ? draft.templateId
-          : "simple";
-      const res = await upsertLanding({
-        publicationId: draft.publicationId,
-        slug: draft.slug,
-        templateId: tid,
-        status: nextStatus,
-        content: draft.content as unknown as Record<string, unknown>,
-      });
-      const prevId = draft.id;
-      const site = normalizeSite(res.site as UnknownSite);
-      if (prevId !== site.id) {
-        deleteSite(prevId);
-      }
-      setDraft(site);
-      setSavedAt(new Date(site.updatedAt));
-      saveSite(site);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Serverda saqlanmadi");
-    }
-  }, [draft]);
+    setDraft((prev) => ({ ...prev, status: nextStatus }));
+  }, [draft.status]);
 
   const updateTemplate = (id: VizitkaTemplateId) => {
     setDraft((prev) => ({ ...prev, templateId: id }));
