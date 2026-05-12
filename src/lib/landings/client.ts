@@ -9,25 +9,43 @@ function authHeaders(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-async function parseError(res: Response): Promise<string> {
-  let raw = await res.text();
+function errorMessageFromJsonText(text: string): string | null {
   try {
-    const j = JSON.parse(raw) as { message?: string | string[] };
+    const j = JSON.parse(text) as { message?: string | string[] };
     if (j.message) {
-      raw = Array.isArray(j.message) ? j.message.join(", ") : j.message;
+      return Array.isArray(j.message) ? j.message.join(", ") : j.message;
     }
   } catch {
-    /* raw */
+    /* not JSON */
   }
-  return raw || `HTTP ${res.status}`;
+  return null;
+}
+
+/** Javob tanasi bir marta o‘qiladi; JSON emas bo‘lsa (masalan HTML) tushunarli xato. */
+async function readJsonResponse<T>(r: Response): Promise<T> {
+  const text = await r.text();
+  if (!r.ok) {
+    const fromApi = errorMessageFromJsonText(text);
+    throw new Error(fromApi ?? text.slice(0, 500) || `HTTP ${r.status}`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const head = text.trimStart().slice(0, 20).toLowerCase();
+    if (head.startsWith("<!doctype") || head.startsWith("<html")) {
+      throw new Error(
+        "Server JSON o‘rniga HTML qaytardi. Odatda API ishlamayapti yoki Next.js /landings yo‘lini Nest ga proxylamagan — next.config.js da rewrite va Nest serverni tekshiring.",
+      );
+    }
+    throw new Error("Javob JSON emas");
+  }
 }
 
 export async function listMyLandings(): Promise<LandingRecord[]> {
   const r = await fetch(`${base()}/landings/mine`, {
     headers: authHeaders(),
   });
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landings: LandingRecord[] };
+  const data = await readJsonResponse<{ landings: LandingRecord[] }>(r);
   return data.landings;
 }
 
@@ -39,8 +57,7 @@ export async function createLanding(payload: {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landing: LandingRecord };
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
   return data.landing;
 }
 
@@ -48,8 +65,7 @@ export async function getMyLanding(id: string): Promise<LandingRecord> {
   const r = await fetch(`${base()}/landings/${encodeURIComponent(id)}`, {
     headers: authHeaders(),
   });
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landing: LandingRecord };
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
   return data.landing;
 }
 
@@ -62,8 +78,7 @@ export async function updateLanding(
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(patch),
   });
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landing: LandingRecord };
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
   return data.landing;
 }
 
@@ -72,7 +87,7 @@ export async function deleteLanding(id: string): Promise<void> {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!r.ok) throw new Error(await parseError(r));
+  await readJsonResponse<{ ok: true }>(r);
 }
 
 export async function uploadLandingImage(
@@ -90,8 +105,7 @@ export async function uploadLandingImage(
       body: fd,
     },
   );
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landing: LandingRecord };
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
   return data.landing;
 }
 
@@ -104,7 +118,6 @@ export async function fetchPublicLandingByName(
     { cache: "no-store" },
   );
   if (r.status === 404) return null;
-  if (!r.ok) throw new Error(await parseError(r));
-  const data = (await r.json()) as { landing: LandingRecord };
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
   return data.landing;
 }

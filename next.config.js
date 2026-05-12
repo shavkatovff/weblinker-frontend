@@ -15,6 +15,7 @@ const nextConfig = {
     return [
       { source: "/auth/:path*", destination: `${internalApi}/auth/:path*` },
       { source: "/vizitka/:path*", destination: `${internalApi}/vizitka/:path*` },
+      { source: "/landings/:path*", destination: `${internalApi}/landings/:path*` },
       { source: "/telegram/:path*", destination: `${internalApi}/telegram/:path*` },
       { source: "/payments/:path*", destination: `${internalApi}/payments/:path*` },
       { source: "/health", destination: `${internalApi}/health` },
