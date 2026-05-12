@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "Weblinker — 15 daqiqada biznes saytingizni yarating",
   description:
     "O'zbekistondagi kichik va o'rta biznes uchun oson va qulay sayt yaratish platformasi. Shablon tanlang, matnni tahrirlang va saytingiz tayyor.",
+  icons: {
+    icon: "/favicon.png",
+  },
   metadataBase: new URL("https://weblinker.uz"),
   openGraph: {
     title: "Weblinker — 15 daqiqada biznes saytingizni yarating",

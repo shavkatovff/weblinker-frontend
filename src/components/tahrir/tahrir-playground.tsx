@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   type ChangeEvent,
   type ReactNode,
@@ -12,7 +12,10 @@ import {
 } from "react";
 import { DemoChoyxonaSite } from "@/components/demo/demo-choyxona-site";
 import { sampleLanding } from "@/lib/landings/defaults";
-import { TAHRIR_PREVIEW_LANDING_SESSION_KEY } from "@/lib/landings/preview-storage";
+import {
+  TAHRIR_PREVIEW_LANDING_SESSION_KEY,
+  TAHRIR_WIZARD_FROM_CREATE_KEY,
+} from "@/lib/landings/preview-storage";
 import {
   DEFAULT_LANDING_THEME,
   LANDING_THEMES,
@@ -158,6 +161,8 @@ export function TahrirPlayground({
   bodyFontClassName,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const landingIdFromUrl = searchParams.get("id");
   const [landing, setLanding] = useState<LandingRecord>(() => initialLandingState());
   /** Kichik ekranda: forma vs joydagi jonli preview (to‘liq ekran — alohida «Ko‘rish» tugmasi) */
   const [embedPanel, setEmbedPanel] = useState<"edit" | "live">("edit");
@@ -180,6 +185,12 @@ export function TahrirPlayground({
     null,
   );
 
+  const showToast = useCallback((t: { kind: "ok" | "err"; text: string }) => {
+    setToast(t);
+    const id = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(id);
+  }, []);
+
   useEffect(() => {
     if (landing.id !== "local") return;
     try {
@@ -193,24 +204,100 @@ export function TahrirPlayground({
   useEffect(() => {
     let alive = true;
     (async () => {
+      const readWizardFromCreate = (): {
+        name: string;
+        brandName: string;
+        heroTitle: string;
+      } | null => {
+        if (typeof window === "undefined" || landingIdFromUrl) return null;
+        const raw = sessionStorage.getItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
+        if (!raw) return null;
+        try {
+          const w = JSON.parse(raw) as {
+            name?: string;
+            brandName?: string;
+            heroTitle?: string;
+          };
+          sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
+          const name = typeof w.name === "string" ? w.name.trim() : "";
+          if (!isValidName(name)) return null;
+          const brand =
+            typeof w.brandName === "string" && w.brandName.trim()
+              ? w.brandName.trim()
+              : name;
+          const hero =
+            typeof w.heroTitle === "string" && w.heroTitle.trim()
+              ? w.heroTitle.trim()
+              : brand;
+          return { name, brandName: brand, heroTitle: hero };
+        } catch {
+          sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
+          return null;
+        }
+      };
+
+      const applyWizard = (w: { name: string; brandName: string; heroTitle: string }) => {
+        setLanding((prev) => ({
+          ...prev,
+          id: "local",
+          name: w.name,
+          brandName: w.brandName,
+          heroTitle: w.heroTitle,
+        }));
+        setDirty(false);
+        try {
+          localStorage.removeItem(LOCAL_KEY);
+        } catch {
+          /* ignore */
+        }
+      };
+
       const t = getAccessToken();
+      const wizard = readWizardFromCreate();
+
       if (!t) {
+        if (wizard) applyWizard(wizard);
         setAuthed(false);
         setBootstrapping(false);
         return;
       }
       setAuthed(true);
       try {
-        const list = await listMyLandings();
-        if (!alive) return;
-        if (list.length > 0) {
-          const full = await getMyLanding(list[0].id);
+        if (landingIdFromUrl) {
+          const full = await getMyLanding(landingIdFromUrl);
           if (!alive) return;
           setLanding(full);
           setSavedAt(full.updatedAt);
+          setDirty(false);
+          try {
+            localStorage.removeItem(LOCAL_KEY);
+          } catch {
+            /* ignore */
+          }
+        } else if (wizard) {
+          if (!alive) return;
+          applyWizard(wizard);
+        } else {
+          const list = await listMyLandings();
+          if (!alive) return;
+          if (list.length > 0) {
+            const full = await getMyLanding(list[0].id);
+            if (!alive) return;
+            setLanding(full);
+            setSavedAt(full.updatedAt);
+            setDirty(false);
+          }
         }
       } catch {
-        /* server xato: local-da davom etamiz */
+        if (!alive) return;
+        if (landingIdFromUrl) {
+          showToast({
+            kind: "err",
+            text: "Bu landing topilmadi yoki sizga tegishli emas.",
+          });
+          router.replace("/tahrir");
+        }
+        /* boshqa xato: local draft bilan davom */
       } finally {
         if (alive) setBootstrapping(false);
       }
@@ -218,7 +305,7 @@ export function TahrirPlayground({
     return () => {
       alive = false;
     };
-  }, []);
+  }, [landingIdFromUrl, router, showToast]);
 
   const patch = useCallback((p: LandingPatch) => {
     setLanding((c) => ({ ...c, ...p } as LandingRecord));
@@ -247,12 +334,6 @@ export function TahrirPlayground({
             );
       focusable?.focus({ preventScroll: true });
     }, 90);
-  }, []);
-
-  const showToast = useCallback((t: { kind: "ok" | "err"; text: string }) => {
-    setToast(t);
-    const id = window.setTimeout(() => setToast(null), 2600);
-    return () => window.clearTimeout(id);
   }, []);
 
   const openPreview = useCallback(() => {

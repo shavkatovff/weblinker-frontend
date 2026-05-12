@@ -38,6 +38,7 @@ import {
   computeClickTopUpNeedSom,
 } from "@/lib/click-invoice-amount";
 import { chargeLandingAiStarter, chargeLandingCreatePackage } from "@/lib/landing-client";
+import { TAHRIR_WIZARD_FROM_CREATE_KEY } from "@/lib/landings/preview-storage";
 import {
   buildLandingFreePackage,
   buildLandingPackages,
@@ -201,14 +202,20 @@ export function CreateSiteForm() {
     }
     if (l === "6" || l === "12") {
       sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
-      router.replace("/tahrir");
+      setSiteType("landing");
+      setLandingTier(Number(l) as 6 | 12);
+      setStep(1);
+      router.replace("/dashboard/sites/new", { scroll: false });
       return;
     }
     if (aiPending === "1") {
       sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
       void chargeLandingAiStarter()
         .then(() => {
-          router.replace("/tahrir");
+          setSiteType("landing");
+          setLandingTier("ai");
+          setStep(1);
+          router.replace("/dashboard/sites/new", { scroll: false });
         })
         .catch((e) => {
           const msg =
@@ -319,7 +326,8 @@ export function CreateSiteForm() {
       if (tier === "free") {
         sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
         sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
-        router.push("/tahrir");
+        setLandingTier("free");
+        setStep(1);
         return;
       }
       if (tier === "ai") {
@@ -334,7 +342,8 @@ export function CreateSiteForm() {
           );
           if (need === 0) {
             await chargeLandingAiStarter();
-            router.push("/tahrir");
+            setLandingTier("ai");
+            setStep(1);
             return;
           }
           sessionStorage.setItem(SESSION_LANDING_AI_PENDING, "1");
@@ -369,7 +378,8 @@ export function CreateSiteForm() {
           computeClickTopUpNeedSom(price, me.user.balance),
         );
         if (need === 0) {
-          router.push("/tahrir");
+          setLandingTier(tier);
+          setStep(1);
           return;
         }
         sessionStorage.setItem(SESSION_LANDING_SUB_MONTHS, String(tier));
@@ -394,8 +404,49 @@ export function CreateSiteForm() {
         setTierPayLoading(null);
       }
     },
-    [landingPriceByMonths, router],
+    [landingPriceByMonths],
   );
+
+  const goToTahrirAfterLandingDomain = useCallback(async () => {
+    if (!canNextFromStep1 || landingTier === null) return;
+    setFinishError(null);
+    if (landingTier === 6 || landingTier === 12) {
+      setSubmitting(true);
+      try {
+        await chargeLandingCreatePackage(landingTier);
+      } catch (e) {
+        setFinishError(
+          e instanceof ApiError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : "Balansdan yechilmadi",
+        );
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
+    try {
+      sessionStorage.setItem(
+        TAHRIR_WIZARD_FROM_CREATE_KEY,
+        JSON.stringify({
+          name: normalizedSlug,
+          brandName: businessName.trim(),
+          heroTitle: businessName.trim(),
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+    router.push("/tahrir");
+  }, [
+    canNextFromStep1,
+    landingTier,
+    normalizedSlug,
+    businessName,
+    router,
+  ]);
 
   const handleFinish = async () => {
     if (!canNextFromStep1 || !siteType) return;
@@ -679,6 +730,72 @@ export function CreateSiteForm() {
 
         <LandingInfoComingSoonPlaceholder
           variant={landingTier === "ai" ? "ai" : "template"}
+        />
+      </div>
+    );
+  }
+
+  if (siteType === "landing" && landingTier != null && !landingComingSoon) {
+    return (
+      <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
+        {finishError ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            {finishError}
+          </div>
+        ) : null}
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-500">
+              Tarif: <span className="font-semibold text-black">Landing</span>
+            </p>
+            {landingTier === "free" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                Bepul — shablon asosida · {pricing.freePublishDays} kunlik sinov
+              </p>
+            ) : landingTier === "ai" ? (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                AI bilan landing — {formatSom(LANDING_AI_STARTER_PRICE_SOM)}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-neutral-600">
+                {landingTier} oy — {formatSom(landingPriceByMonths[landingTier])}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFinishError(null);
+              setLandingTier(null);
+              setStep(1);
+            }}
+            className="text-xs font-medium text-black underline underline-offset-4"
+          >
+            Tarifni o&apos;zgartirish
+          </button>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-[color:var(--border)] bg-neutral-50/80 px-4 py-3 text-sm text-neutral-700">
+          Paket tanlandi. Endi saytingiz{" "}
+          <strong className="font-medium text-neutral-900">weblinker.uz/…</strong>{" "}
+          manzilini va ko&apos;rinadigan nomni kiriting — shundan keyin tahrir ochiladi.
+        </div>
+
+        <StepOne
+          businessName={businessName}
+          setBusinessName={setBusinessName}
+          slug={slug}
+          setSlug={(v) => {
+            setSlug(normalizeSlug(v));
+            setSlugTouched(true);
+          }}
+          category={category}
+          setCategory={setCategory}
+          slugError={slugError}
+          canNext={canNextFromStep1}
+          onNext={() => void goToTahrirAfterLandingDomain()}
+          nextLabel="Tahrirda davom etish →"
+          submitting={submitting}
         />
       </div>
     );
@@ -1319,6 +1436,8 @@ function StepOne({
   slugError,
   canNext,
   onNext,
+  nextLabel,
+  submitting,
 }: {
   businessName: string;
   setBusinessName: (v: string) => void;
@@ -1329,6 +1448,8 @@ function StepOne({
   slugError: string | null;
   canNext: boolean;
   onNext: () => void;
+  nextLabel?: string;
+  submitting?: boolean;
 }) {
   return (
     <div className="mx-auto max-w-2xl rounded-2xl border border-[color:var(--border)] bg-white p-6 sm:p-8">
@@ -1365,8 +1486,12 @@ function StepOne({
       </div>
 
       <div className="mt-8 flex justify-end">
-        <Button size="lg" onClick={onNext} disabled={!canNext}>
-          Davom etish →
+        <Button
+          size="lg"
+          onClick={onNext}
+          disabled={!canNext || Boolean(submitting)}
+        >
+          {submitting ? "Kutilmoqda…" : nextLabel ?? "Davom etish →"}
         </Button>
       </div>
     </div>
