@@ -1,6 +1,10 @@
 import { DEFAULT_LANDING_THEME } from "./themes";
 import type { LandingRecord } from "./types";
 
+/** Hero ostidagi qisqa tavsif — lokal namuna, wizard va DB default bilan bir xil */
+export const DEFAULT_LANDING_HERO_DESCRIPTION =
+  "Mijozlarimiz uchun qulay maskan — sifatli xizmat va yoqimli muhit.";
+
 /** Server bilan ulanmagan vaqtdagi taxminiy ko'rinish — namuna bilan to'ldirilgan */
 export function sampleLanding(): LandingRecord {
   const now = new Date().toISOString();
@@ -29,8 +33,7 @@ export function sampleLanding(): LandingRecord {
     navCta: "Joy band qilish",
 
     heroTitle: "Nomdor Choyxonasida haqiqiy dam olish zavqini his qiling",
-    description:
-      "Oilaviy uchrashuvlar, do‘stlar davrasi va biznes tushliklar uchun qulay, shinam maskan.",
+    description: DEFAULT_LANDING_HERO_DESCRIPTION,
     heroCta: "Biz bilan bog'lanish",
     heroImageUrl:
       "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",

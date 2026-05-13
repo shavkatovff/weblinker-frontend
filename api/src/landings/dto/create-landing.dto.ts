@@ -39,7 +39,8 @@ export class CreateLandingDto {
   blocktheme?: string;
 
   @IsOptional() @IsString() @MaxLength(120) brandName?: string;
-  @IsOptional() @IsString() @MaxLength(4000) logourl?: string;
+  /** URL yoki `data:` (lokal tahrir) — 2 MB rasm base64 ~3M belgigacha */
+  @IsOptional() @IsString() @MaxLength(3500000) logourl?: string;
   @IsOptional() @IsString() @MaxLength(60) navAbout?: string;
   @IsOptional() @IsString() @MaxLength(60) navFaq?: string;
   @IsOptional() @IsString() @MaxLength(60) navContact?: string;

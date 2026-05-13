@@ -46,6 +46,7 @@ import {
   computeClickTopUpNeedSom,
 } from "@/lib/click-invoice-amount";
 import { chargeLandingAiStarter, chargeLandingCreatePackage } from "@/lib/landing-client";
+import { DEFAULT_LANDING_HERO_DESCRIPTION } from "@/lib/landings/defaults";
 import { TAHRIR_WIZARD_FROM_CREATE_KEY } from "@/lib/landings/preview-storage";
 import {
   buildLandingFreePackage,
@@ -450,7 +451,7 @@ export function CreateSiteForm() {
           name: normalizedSlug,
           brandName: businessName.trim(),
           heroTitle: businessName.trim(),
-          description: "",
+          description: DEFAULT_LANDING_HERO_DESCRIPTION,
           category: category.trim(),
         }),
       );

@@ -202,7 +202,7 @@ model Landing {
 
   /// Hero bo'limi
   heroTitle     String   @default("") @map("hero_title") @db.Text
-  description   String   @default("Qisqacha tavsif yozing") @map("hero_desc") @db.Text
+  description   String   @default("Mijozlarimiz uchun qulay maskan — sifatli xizmat va yoqimli muhit.") @map("hero_desc") @db.Text
   heroCta       String   @default("Bog'lanish") @map("hero_cta")
   heroImageUrl  String   @default("") @map("hero_image_url") @db.Text
 

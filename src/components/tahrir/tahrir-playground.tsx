@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import { DemoChoyxonaSite } from "@/components/demo/demo-choyxona-site";
-import { sampleLanding } from "@/lib/landings/defaults";
+import { sampleLanding, DEFAULT_LANDING_HERO_DESCRIPTION } from "@/lib/landings/defaults";
 import {
   TAHRIR_PREVIEW_LANDING_SESSION_KEY,
   TAHRIR_WIZARD_FROM_CREATE_KEY,
@@ -1120,6 +1120,7 @@ function HeroSection(props: {
           rows={3}
           value={landing.description}
           onChange={(v) => onChange({ description: v })}
+          placeholder={DEFAULT_LANDING_HERO_DESCRIPTION}
         />
       </Field>
       <Field label="Asosiy tugma matni">
