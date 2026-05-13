@@ -9,6 +9,8 @@ export type LandingRecord = {
 
   /** weblinker.uz/{name} */
   name: string;
+  /** Biznes turi / yo‘nalish (masalan: Chayxona) */
+  category: string;
   plan: string;
   expiredAt: string | null;
 
@@ -22,12 +24,16 @@ export type LandingRecord = {
   blocktheme: string;
 
   brandName: string;
+  /** Header logo — to‘liq URL yoki `/uploads/...` (Prisma: `logourl`) */
+  logourl: string;
   navAbout: string;
   navFaq: string;
   navContact: string;
   navCta: string;
 
   heroTitle: string;
+  /** Hero ostidagi qisqa matn (Prisma: `description`, DB: `hero_desc`) */
+  description: string;
   heroCta: string;
   heroImageUrl: string;
 

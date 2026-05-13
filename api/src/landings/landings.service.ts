@@ -182,7 +182,7 @@ export class LandingsService {
   async saveUploadedImage(
     id: string,
     ownerPublicId: string,
-    kind: 'hero' | 'about',
+    kind: 'hero' | 'about' | 'logo',
     relativeUrl: string,
   ): Promise<{ landing: Landing }> {
     const existing = await this.prisma.landing.findFirst({
@@ -191,12 +191,15 @@ export class LandingsService {
     if (!existing) {
       throw new NotFoundException('Landing topilmadi');
     }
+    const data =
+      kind === 'hero'
+        ? { heroImageUrl: relativeUrl }
+        : kind === 'about'
+          ? { aboutImageUrl: relativeUrl }
+          : { logourl: relativeUrl };
     const landing = await this.prisma.landing.update({
       where: { id },
-      data:
-        kind === 'hero'
-          ? { heroImageUrl: relativeUrl }
-          : { aboutImageUrl: relativeUrl },
+      data,
     });
     return { landing };
   }

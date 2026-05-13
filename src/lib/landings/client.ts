@@ -93,7 +93,7 @@ export async function deleteLanding(id: string): Promise<void> {
 
 export async function uploadLandingImage(
   id: string,
-  kind: "hero" | "about",
+  kind: "hero" | "about" | "logo",
   file: File,
 ): Promise<LandingRecord> {
   const fd = new FormData();

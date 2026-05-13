@@ -11,6 +11,7 @@ export function defaultDemoChoyxonaContent(): DemoChoyxonaContent {
       footer: true,
     },
     brandName: "Nomdor Choyxonasi",
+    logoUrl: "",
     navAbout: "Biz haqimizda",
     navFaq: "FAQ",
     navContact: "Aloqa",

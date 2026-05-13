@@ -44,6 +44,11 @@ export function LandingSiteCard({ landing, onDeleted }: Props) {
               weblinker.uz/
               <span className="font-mono">{landing.name}</span>
             </p>
+            {landing.category.trim() ? (
+              <p className="mt-0.5 truncate text-xs font-medium text-neutral-700">
+                {landing.category}
+              </p>
+            ) : null}
           </div>
         </div>
         <span

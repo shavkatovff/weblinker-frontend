@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  startTransition,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -46,7 +54,6 @@ import {
   LANDING_AI_STARTER_PRICE_SOM,
 } from "@/lib/landing-pricing";
 import {
-  COLOR_THEMES,
   ColorThemeId,
   LandingTemplateId,
   PatternId,
@@ -109,6 +116,13 @@ const steps = [
   { n: 3, label: "Ma'lumotlar" },
 ];
 
+const noopSubscribe = () => () => {};
+
+/** SSR da `false`, klientda `true` — `slugExists` va avto-slug faqat brauzerda */
+function useClientReady(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 /** CLICK dan qaytganda — vizitka oy paketi */
 const SESSION_SUB_MONTHS = "weblinker.newSite.subscriptionMonths";
 /** CLICK dan qaytganda — landing oy paketi */
@@ -141,7 +155,7 @@ export function CreateSiteForm() {
   const searchParams = useSearchParams();
   const [siteType, setSiteType] = useState<SiteType | null>(null);
   const [step, setStep] = useState<Step>(1);
-  const [ready, setReady] = useState(false);
+  const ready = useClientReady();
 
   const [businessName, setBusinessName] = useState("");
   const [slug, setSlug] = useState("");
@@ -182,10 +196,6 @@ export function CreateSiteForm() {
   );
 
   useEffect(() => {
-    setReady(true);
-  }, []);
-
-  useEffect(() => {
     void fetchVizitkaPricing().then(setPricing).catch(() => {});
   }, []);
 
@@ -197,14 +207,18 @@ export function CreateSiteForm() {
     const aiPending = sessionStorage.getItem(SESSION_LANDING_AI_PENDING);
 
     if (m === "6" || m === "12") {
-      setVizitkaTier(Number(m) as 6 | 12);
-      setStep(1);
+      startTransition(() => {
+        setVizitkaTier(Number(m) as 6 | 12);
+        setStep(1);
+      });
     }
     if (l === "6" || l === "12") {
       sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
-      setSiteType("landing");
-      setLandingTier(Number(l) as 6 | 12);
-      setStep(1);
+      startTransition(() => {
+        setSiteType("landing");
+        setLandingTier(Number(l) as 6 | 12);
+        setStep(1);
+      });
       router.replace("/dashboard/sites/new", { scroll: false });
       return;
     }
@@ -236,7 +250,9 @@ export function CreateSiteForm() {
 
   useEffect(() => {
     if (slugTouched || !ready) return;
-    setSlug(businessName.trim() ? suggestSlug(businessName) : "");
+    startTransition(() => {
+      setSlug(businessName.trim() ? suggestSlug(businessName) : "");
+    });
   }, [businessName, slugTouched, ready]);
 
   const normalizedSlug = useMemo(() => normalizeSlug(slug), [slug]);
@@ -434,6 +450,8 @@ export function CreateSiteForm() {
           name: normalizedSlug,
           brandName: businessName.trim(),
           heroTitle: businessName.trim(),
+          description: "",
+          category: category.trim(),
         }),
       );
     } catch {
@@ -445,6 +463,7 @@ export function CreateSiteForm() {
     landingTier,
     normalizedSlug,
     businessName,
+    category,
     router,
   ]);
 
@@ -773,12 +792,6 @@ export function CreateSiteForm() {
           >
             Tarifni o&apos;zgartirish
           </button>
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-[color:var(--border)] bg-neutral-50/80 px-4 py-3 text-sm text-neutral-700">
-          Paket tanlandi. Endi saytingiz{" "}
-          <strong className="font-medium text-neutral-900">weblinker.uz/…</strong>{" "}
-          manzilini va ko&apos;rinadigan nomni kiriting — shundan keyin tahrir ochiladi.
         </div>
 
         <StepOne
@@ -1124,18 +1137,20 @@ function LandingPackagePicker({
           </span>
         </button>
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void onSelectTier("ai")}
-          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-violet-400/90 bg-gradient-to-b from-violet-50/90 to-white p-6 text-left transition-all hover:border-violet-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+        <div
+          role="note"
+          aria-label="AI bilan landing — tez orada"
+          className={cn(
+            "group relative flex cursor-not-allowed flex-col gap-3 rounded-2xl border-2 border-violet-200 bg-gradient-to-b from-violet-50/60 to-neutral-50/90 p-6 text-left",
+            busy && "opacity-50",
+          )}
         >
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+          <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center rounded-full bg-violet-600/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
             AI
           </span>
           <div className="mt-1">
             <p className="text-lg font-semibold text-black">AI bilan landing</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-violet-900">
+            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-violet-900/80">
               {formatSom(LANDING_AI_STARTER_PRICE_SOM)}
             </p>
             <p className="mt-1 text-xs text-neutral-600">
@@ -1143,10 +1158,10 @@ function LandingPackagePicker({
               boshlang&apos;ich paket.
             </p>
           </div>
-          <span className="mt-auto pt-2 text-sm font-semibold text-violet-950">
-            {payingTier === "ai" ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
-          </span>
-        </button>
+          <p className="mt-auto border-t border-neutral-200/90 pt-4 text-center text-2xl font-extrabold tracking-tight text-neutral-500 sm:text-3xl">
+            Tez orada
+          </p>
+        </div>
 
         <button
           type="button"
@@ -1159,13 +1174,24 @@ function LandingPackagePicker({
           </span>
           <div className="mt-1">
             <p className="text-lg font-semibold text-black">{pkg6.title}</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
-              {formatSom(pkg6.priceSom)}
-            </p>
-            <p className="mt-1 text-xs text-neutral-600">{pkg6.subtitle}</p>
             {pkg6.hint ? (
-              <p className="mt-2 text-[11px] text-neutral-500">{pkg6.hint}</p>
-            ) : null}
+              <>
+                <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                  {pkg6.hint}
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">{pkg6.subtitle}</p>
+                <p className="mt-2 text-[20px] font-medium tabular-nums text-neutral-500">
+                  {formatSom(pkg6.priceSom)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                  {formatSom(pkg6.priceSom)}
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">{pkg6.subtitle}</p>
+              </>
+            )}
           </div>
           <span className="mt-auto pt-2 text-sm font-semibold text-black">
             {payingTier === 6 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
@@ -1183,13 +1209,24 @@ function LandingPackagePicker({
           </span>
           <div className="mt-1">
             <p className="text-lg font-semibold text-black">{pkg12.title}</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
-              {formatSom(pkg12.priceSom)}
-            </p>
-            <p className="mt-1 text-xs text-neutral-600">{pkg12.subtitle}</p>
             {pkg12.hint ? (
-              <p className="mt-2 text-[11px] text-neutral-500">{pkg12.hint}</p>
-            ) : null}
+              <>
+                <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                  {pkg12.hint}
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">{pkg12.subtitle}</p>
+                <p className="mt-2 text-[20px] font-medium tabular-nums text-neutral-500">
+                  {formatSom(pkg12.priceSom)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-neutral-900">
+                  {formatSom(pkg12.priceSom)}
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">{pkg12.subtitle}</p>
+              </>
+            )}
           </div>
           <span className="mt-auto pt-2 text-sm font-semibold text-black">
             {payingTier === 12 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
@@ -1241,7 +1278,6 @@ function TypePicker({
             "Logo va hero rasm",
             "Mobile birinchi dizayn",
           ]}
-          recommended
           onClick={() => onPick("vizitka")}
         />
         <TypeCard
@@ -1254,6 +1290,7 @@ function TypePicker({
             "Oddiy yoki to‘liq shablon",
             "Nashr — URL da jonli",
           ]}
+          recommended
           onClick={() => onPick("landing")}
         />
       </div>

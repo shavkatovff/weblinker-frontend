@@ -9,6 +9,7 @@ export function sampleLanding(): LandingRecord {
     ownerPublicId: "",
 
     name: "mening-saytim",
+    category: "",
     plan: "10kun",
     expiredAt: null,
 
@@ -21,12 +22,15 @@ export function sampleLanding(): LandingRecord {
     blocktheme: DEFAULT_LANDING_THEME,
 
     brandName: "Nomdor Choyxonasi",
+    logourl: "",
     navAbout: "Biz haqimizda",
     navFaq: "FAQ",
     navContact: "Aloqa",
     navCta: "Joy band qilish",
 
     heroTitle: "Nomdor Choyxonasida haqiqiy dam olish zavqini his qiling",
+    description:
+      "Oilaviy uchrashuvlar, do‘stlar davrasi va biznes tushliklar uchun qulay, shinam maskan.",
     heroCta: "Biz bilan bog'lanish",
     heroImageUrl:
       "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",

@@ -34,6 +34,7 @@ import {
   uploadLandingImage,
 } from "@/lib/landings/client";
 import { getAccessToken } from "@/lib/auth-storage";
+import { cn } from "@/lib/cn";
 import { landingToDemoContent } from "@/lib/landings/to-content";
 
 type Props = {
@@ -59,7 +60,6 @@ function initialLandingState(): LandingRecord {
 }
 
 type SectionId =
-  | "site"
   | "brand"
   | "hero"
   | "about"
@@ -73,7 +73,6 @@ const SECTIONS: Array<{
   hint: string;
   toggleKey?: keyof LandingRecord;
 }> = [
-  { id: "site", title: "Sayt", hint: "Domen va saqlash" },
   { id: "brand", title: "Header", hint: "Brend nomi va menyu" },
   { id: "hero", title: "Bosh sahifa (Hero)", hint: "Sarlavha va asosiy rasm" },
   { id: "about", title: "Biz haqimizda", hint: "Tavsif va afzalliklar", toggleKey: "blockAbout" },
@@ -88,13 +87,15 @@ function tid(field: string): string {
 }
 
 const PREVIEW_FIELD_TO_SECTION: Record<string, SectionId> = {
-  name: "site",
   brandName: "brand",
+  category: "brand",
+  logourl: "brand",
   navAbout: "brand",
   navFaq: "brand",
   navContact: "brand",
   navCta: "brand",
   heroTitle: "hero",
+  description: "hero",
   heroCta: "hero",
   heroImageUrl: "hero",
   aboutTitle: "about",
@@ -168,7 +169,6 @@ export function TahrirPlayground({
   const [embedPanel, setEmbedPanel] = useState<"edit" | "live">("edit");
   const [dirty, setDirty] = useState(false);
   const [open, setOpen] = useState<Record<SectionId, boolean>>({
-    site: true,
     brand: false,
     hero: true,
     about: false,
@@ -208,6 +208,8 @@ export function TahrirPlayground({
         name: string;
         brandName: string;
         heroTitle: string;
+        description?: string;
+        category?: string;
       } | null => {
         if (typeof window === "undefined" || landingIdFromUrl) return null;
         const raw = sessionStorage.getItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
@@ -217,6 +219,8 @@ export function TahrirPlayground({
             name?: string;
             brandName?: string;
             heroTitle?: string;
+            description?: string;
+            category?: string;
           };
           sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
           const name = typeof w.name === "string" ? w.name.trim() : "";
@@ -229,20 +233,32 @@ export function TahrirPlayground({
             typeof w.heroTitle === "string" && w.heroTitle.trim()
               ? w.heroTitle.trim()
               : brand;
-          return { name, brandName: brand, heroTitle: hero };
+          const description =
+            typeof w.description === "string" ? w.description : "";
+          const category =
+            typeof w.category === "string" ? w.category.trim() : "";
+          return { name, brandName: brand, heroTitle: hero, description, category };
         } catch {
           sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
           return null;
         }
       };
 
-      const applyWizard = (w: { name: string; brandName: string; heroTitle: string }) => {
+      const applyWizard = (w: {
+        name: string;
+        brandName: string;
+        heroTitle: string;
+        description?: string;
+        category?: string;
+      }) => {
         setLanding((prev) => ({
           ...prev,
           id: "local",
           name: w.name,
           brandName: w.brandName,
           heroTitle: w.heroTitle,
+          ...(w.description !== undefined ? { description: w.description } : {}),
+          ...(w.category !== undefined ? { category: w.category } : {}),
         }));
         setDirty(false);
         try {
@@ -440,7 +456,7 @@ export function TahrirPlayground({
   }, [authed, landing, router, showToast]);
 
   const onUpload = useCallback(
-    async (kind: "hero" | "about", file: File): Promise<void> => {
+    async (kind: "hero" | "about" | "logo", file: File): Promise<void> => {
       if (!authed || landing.id === "local") {
         const reader = new FileReader();
         await new Promise<void>((res, rej) => {
@@ -452,7 +468,9 @@ export function TahrirPlayground({
         patch(
           kind === "hero"
             ? { heroImageUrl: dataUrl }
-            : { aboutImageUrl: dataUrl },
+            : kind === "about"
+              ? { aboutImageUrl: dataUrl }
+              : { logourl: dataUrl },
         );
         return;
       }
@@ -527,7 +545,7 @@ export function TahrirPlayground({
             embedPanel === "live" ? "hidden lg:flex" : "",
           ].join(" ")}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-[calc(5px+0.75rem)] py-3 sm:px-[calc(5px+1rem)]">
             <div className="space-y-3">
               {SECTIONS.map((sec) => (
                 <SectionCard
@@ -551,11 +569,12 @@ export function TahrirPlayground({
                       : undefined
                   }
                 >
-                  {sec.id === "site" && (
-                    <SiteSection landing={landing} onName={handleNameChange} />
-                  )}
                   {sec.id === "brand" && (
-                    <BrandSection landing={landing} onChange={patch} />
+                    <BrandSection
+                      landing={landing}
+                      onChange={patch}
+                      onUploadLogo={(f) => void onUpload("logo", f)}
+                    />
                   )}
                   {sec.id === "hero" && (
                     <HeroSection
@@ -659,8 +678,8 @@ function Toolbar(props: {
 
   return (
     <header className="z-[60] shrink-0 border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-neutral-100 px-3 py-2 pt-[max(4px,env(safe-area-inset-top))] sm:gap-3 sm:px-4">
-        <div className="flex min-w-0 flex-1 items-center rounded-md border border-neutral-200 bg-neutral-50 text-xs">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-neutral-100 px-[calc(5px+0.75rem)] py-2 pt-[calc(8px+max(4px,env(safe-area-inset-top)))] sm:gap-3 sm:px-[calc(5px+1rem)]">
+        <div className="flex min-w-0 flex-1 items-center rounded-md border border-neutral-200 bg-neutral-50 text-xs sm:max-w-[50%]">
           <span className="hidden shrink-0 px-2 py-1.5 text-neutral-500 sm:inline">
             weblinker.uz/
           </span>
@@ -680,7 +699,7 @@ function Toolbar(props: {
           type="button"
           onClick={onOpenPreview}
           title="To‘liq ekranda alohida sahifada ochish"
-          className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 active:bg-neutral-100"
+          className="ml-auto shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-sm transition-colors hover:bg-neutral-50 active:bg-neutral-100"
         >
           Ko‘rish
         </button>
@@ -698,7 +717,7 @@ function Toolbar(props: {
                 {creating ? "Yaratilmoqda…" : "Yaratish"}
               </button>
             ) : (
-              <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:ml-auto sm:w-auto">
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={onSave}
@@ -737,6 +756,7 @@ function SectionCard(props: {
       <button
         type="button"
         onClick={onToggleOpen}
+        aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-left transition hover:bg-neutral-50"
       >
         <span className="min-w-0">
@@ -747,7 +767,7 @@ function SectionCard(props: {
             {hint}
           </span>
         </span>
-        <span className="flex items-center gap-3">
+        <span className="flex shrink-0 items-center gap-3">
           {toggleable && (
             <Toggle
               checked={enabled ?? false}
@@ -756,12 +776,24 @@ function SectionCard(props: {
             />
           )}
           <span
-            className={[
-              "text-neutral-400 transition",
-              open ? "rotate-180" : "",
-            ].join(" ")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-600 shadow-sm transition-transform duration-200 ease-out",
+              open && "rotate-180",
+            )}
+            aria-hidden
           >
-            ▾
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.25}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </span>
         </span>
       </button>
@@ -872,11 +904,14 @@ function ImageField(props: {
   onUpload: (file: File) => Promise<void> | void;
   hint?: string;
   id?: string;
+  /** Logo kabi kichik kvadrat maydon */
+  compact?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const has = props.value.trim().length > 0;
+  const compact = props.compact ?? false;
 
   const handle = async (file: File | undefined) => {
     if (!file) return;
@@ -906,14 +941,30 @@ function ImageField(props: {
         {props.label}
       </label>
       {has ? (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div
+          className={[
+            "overflow-hidden rounded-xl border border-neutral-200 bg-white",
+            compact ? "inline-flex max-w-[10rem] flex-col" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={props.value}
             alt=""
-            className="aspect-[16/9] w-full bg-neutral-100 object-cover"
+            className={
+              compact
+                ? "h-24 w-24 max-w-full bg-neutral-100 object-contain p-1"
+                : "aspect-[16/9] w-full bg-neutral-100 object-cover"
+            }
           />
-          <div className="flex items-center justify-between gap-2 px-3 py-2">
+          <div
+            className={[
+              "flex items-center justify-between gap-2",
+              compact ? "flex-col px-2 py-1.5" : "px-3 py-2",
+            ].join(" ")}
+          >
             <span className="truncate text-[11px] text-neutral-500">
               {props.value.startsWith("data:")
                 ? "Yuklangan rasm"
@@ -923,7 +974,7 @@ function ImageField(props: {
               type="button"
               disabled={busy}
               onClick={() => fileRef.current?.click()}
-              className="h-8 rounded-md border border-neutral-200 px-3 text-xs font-semibold text-neutral-800 transition-colors hover:border-black disabled:opacity-50"
+              className="h-8 shrink-0 rounded-md border border-neutral-200 px-3 text-xs font-semibold text-neutral-800 transition-colors hover:border-black disabled:opacity-50"
             >
               {busy ? "Yuklanmoqda…" : "Almashtirish"}
             </button>
@@ -939,11 +990,22 @@ function ImageField(props: {
             e.preventDefault();
             void handle(e.dataTransfer.files?.[0]);
           }}
-          className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-center text-sm text-neutral-600 transition-colors hover:border-black hover:text-neutral-900"
+          className={[
+            "flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-center text-neutral-600 transition-colors hover:border-black hover:text-neutral-900",
+            compact
+              ? "h-28 w-28 gap-1 p-2 text-xs"
+              : "aspect-[16/9] w-full gap-2 text-sm",
+          ].join(" ")}
         >
-          <span className="text-2xl">⬆</span>
-          <span>{busy ? "Yuklanmoqda…" : "Rasmni tashlang yoki tanlang"}</span>
-          <span className="text-[11px] text-neutral-500">JPG/PNG, 2 MB</span>
+          <span className={compact ? "text-lg" : "text-2xl"}>⬆</span>
+          <span className={compact ? "text-[11px] leading-tight" : ""}>
+            {busy ? "Yuklanmoqda…" : "Rasmni tashlang yoki tanlang"}
+          </span>
+          {!compact ? (
+            <span className="text-[11px] text-neutral-500">JPG/PNG, 2 MB</span>
+          ) : (
+            <span className="text-[10px] text-neutral-500">JPG/PNG</span>
+          )}
         </button>
       )}
       <input
@@ -968,25 +1030,12 @@ function ImageField(props: {
 /* Bo'lim formalari                                                     */
 /* ------------------------------------------------------------------ */
 
-function SiteSection(props: {
-  landing: LandingRecord;
-  onName: (s: string) => void;
-}) {
-  const { landing, onName } = props;
-  return (
-    <div className="space-y-3">
-      <Field label="Domen">
-        <TextInput id={tid("name")} value={landing.name} onChange={onName} />
-      </Field>
-    </div>
-  );
-}
-
 function BrandSection(props: {
   landing: LandingRecord;
   onChange: (p: LandingPatch) => void;
+  onUploadLogo: (file: File) => Promise<void> | void;
 }) {
-  const { landing, onChange } = props;
+  const { landing, onChange, onUploadLogo } = props;
   return (
     <div className="space-y-3">
       <Field label="Brend nomi">
@@ -996,6 +1045,22 @@ function BrandSection(props: {
           onChange={(v) => onChange({ brandName: v })}
         />
       </Field>
+      <Field label="Kategoriya" hint="Masalan: Chayxona, Restoran — dashboard va tahlilda ko‘rinadi">
+        <TextInput
+          id={tid("category")}
+          value={landing.category}
+          onChange={(v) => onChange({ category: v })}
+          placeholder="Chayxona"
+        />
+      </Field>
+      <ImageField
+        id={tid("logourl")}
+        label="Logo (rasm)"
+        value={landing.logourl}
+        onUpload={onUploadLogo}
+        compact
+        hint="PNG/JPG, 2 MB. Headerda brend nomi yonida chiqadi."
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Menyu: Biz haqimizda">
           <TextInput
@@ -1044,6 +1109,17 @@ function HeroSection(props: {
           rows={3}
           value={landing.heroTitle}
           onChange={(v) => onChange({ heroTitle: v })}
+        />
+      </Field>
+      <Field
+        label="Hero qisqa tavsif"
+        hint="Sarlavha ostidagi kichik matn (masalan, 1–2 jumla)"
+      >
+        <TextArea
+          id={tid("description")}
+          rows={3}
+          value={landing.description}
+          onChange={(v) => onChange({ description: v })}
         />
       </Field>
       <Field label="Asosiy tugma matni">

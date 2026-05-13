@@ -253,20 +253,31 @@ export function DemoChoyxonaSite({
               "color-mix(in srgb, var(--c-bg) 85%, transparent)",
           }}
         >
-          <div className="mx-auto flex h-16 w-full max-w-[1180px] items-center justify-between gap-3 px-[min(18px,4vw)] sm:h-[72px] sm:gap-6">
+          <div className="mx-auto flex h-16 w-full max-w-[1180px] items-center justify-between gap-3 px-[calc(5px+min(18px,4vw))] sm:h-[72px] sm:gap-6">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <span
-                aria-hidden
-                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-black shadow-lg sm:inline-flex"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--c-p-from), var(--c-p-to))",
-                  color: "var(--c-bg)",
-                  boxShadow: "0 8px 22px var(--c-p-glow)",
-                }}
-              >
-                {(content.brandName || "C").trim().charAt(0).toUpperCase()}
-              </span>
+              {content.logoUrl.trim() ? (
+                <PreviewEditWrap editId="logourl" onRequestEdit={onRequestEdit} className="shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={content.logoUrl}
+                    alt={`${content.brandName} logotipi`}
+                    className="h-9 w-9 shrink-0 rounded-xl border border-[#20140c]/10 bg-white object-contain p-0.5 shadow-sm"
+                  />
+                </PreviewEditWrap>
+              ) : (
+                <span
+                  aria-hidden
+                  className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-black shadow-lg sm:inline-flex"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--c-p-from), var(--c-p-to))",
+                    color: "var(--c-bg)",
+                    boxShadow: "0 8px 22px var(--c-p-glow)",
+                  }}
+                >
+                  {(content.brandName || "C").trim().charAt(0).toUpperCase()}
+                </span>
+              )}
               <PreviewEditWrap
                 editId="brandName"
                 onRequestEdit={onRequestEdit}
@@ -429,7 +440,7 @@ export function DemoChoyxonaSite({
             }}
           />
 
-          <div className="mx-auto grid w-full max-w-[1180px] items-center gap-10 px-[min(18px,4vw)] lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
+          <div className="mx-auto grid w-full max-w-[1180px] items-center gap-10 px-[calc(5px+min(18px,4vw))] lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
             <div className="text-center lg:text-left">
               <PreviewEditWrap editId="heroTitle" onRequestEdit={onRequestEdit}>
                 <h1
@@ -439,6 +450,18 @@ export function DemoChoyxonaSite({
                   {content.heroTitle}
                 </h1>
               </PreviewEditWrap>
+
+              {content.heroLead.trim() ? (
+                <PreviewEditWrap
+                  editId="description"
+                  onRequestEdit={onRequestEdit}
+                  className="choy-anim-fade-up mx-auto mb-8 block max-w-2xl lg:mx-0"
+                >
+                  <p className="text-balance text-[15px] font-medium leading-relaxed text-[#4b3828] sm:text-lg">
+                    {content.heroLead}
+                  </p>
+                </PreviewEditWrap>
+              ) : null}
 
               {scrollHref && (
                 <div
@@ -509,7 +532,7 @@ export function DemoChoyxonaSite({
           id="about"
           className="relative border-t border-[#20140c]/5 bg-white/55 py-16 sm:py-24"
         >
-          <div className="mx-auto grid w-full max-w-[1180px] items-center gap-10 px-[min(18px,4vw)] lg:grid-cols-2 lg:gap-16">
+          <div className="mx-auto grid w-full max-w-[1180px] items-center gap-10 px-[calc(5px+min(18px,4vw))] lg:grid-cols-2 lg:gap-16">
             <PreviewEditWrap
               editId="aboutImageUrl"
               onRequestEdit={onRequestEdit}
@@ -591,7 +614,7 @@ export function DemoChoyxonaSite({
           id="faq"
           className="relative border-t border-[#20140c]/5 py-16 sm:py-24"
         >
-          <div className="mx-auto w-full max-w-[1180px] px-[min(18px,4vw)]">
+          <div className="mx-auto w-full max-w-[1180px] px-[calc(5px+min(18px,4vw))]">
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <PreviewEditWrap
                 editId="faqBadge"
@@ -657,7 +680,7 @@ export function DemoChoyxonaSite({
               "linear-gradient(135deg, rgba(255,255,255,0.70), var(--c-bg) 50%, var(--c-p-tint))",
           }}
         >
-          <div className="mx-auto w-full max-w-[1180px] px-[min(18px,4vw)]">
+          <div className="mx-auto w-full max-w-[1180px] px-[calc(5px+min(18px,4vw))]">
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <PreviewEditWrap
                 editId="contactBadge"
@@ -806,19 +829,35 @@ export function DemoChoyxonaSite({
                 "radial-gradient(circle, color-mix(in srgb, var(--c-accent) 20%, transparent), transparent 70%)",
             }}
           />
-          <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-6 px-[min(18px,4vw)] text-center">
+          <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-6 px-[calc(5px+min(18px,4vw))] text-center">
             <div className="flex items-center gap-3">
-              <span
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-base font-black"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--c-p-from), var(--c-p-to))",
-                  color: "var(--c-bg)",
-                  boxShadow: "0 10px 24px var(--c-p-glow)",
-                }}
-              >
-                {(content.brandName || "C").trim().charAt(0).toUpperCase()}
-              </span>
+              {content.logoUrl.trim() ? (
+                <PreviewEditWrap
+                  editId="logourl"
+                  onRequestEdit={onRequestEdit}
+                  className="shrink-0"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={content.logoUrl}
+                    alt={`${content.brandName} logotipi`}
+                    className="h-10 w-10 shrink-0 rounded-2xl border border-white/20 bg-white/95 object-contain p-0.5 shadow-lg"
+                    style={{ boxShadow: "0 10px 24px var(--c-p-glow)" }}
+                  />
+                </PreviewEditWrap>
+              ) : (
+                <span
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-base font-black"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--c-p-from), var(--c-p-to))",
+                    color: "var(--c-bg)",
+                    boxShadow: "0 10px 24px var(--c-p-glow)",
+                  }}
+                >
+                  {(content.brandName || "C").trim().charAt(0).toUpperCase()}
+                </span>
+              )}
               <span className={`${titleFontClassName} text-lg font-black tracking-tight`}>
                 {content.brandName}
               </span>

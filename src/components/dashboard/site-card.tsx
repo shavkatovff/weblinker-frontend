@@ -29,6 +29,11 @@ export function SiteCard({ site }: { site: UnknownSite }) {
             <p className="truncate text-xs text-neutral-500">
               weblinker.uz/<span className="font-mono">{site.slug}</span>
             </p>
+            {site.content.category?.trim() ? (
+              <p className="mt-0.5 truncate text-xs font-medium text-neutral-700">
+                {site.content.category}
+              </p>
+            ) : null}
           </div>
         </div>
         <StatusBadge status={site.status} />

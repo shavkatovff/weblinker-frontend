@@ -156,7 +156,8 @@ export class LandingsController {
     @Req() req: { user: { sub: number; pid: string } },
   ) {
     if (!file) throw new BadRequestException('Fayl tanlang');
-    const k = kind === 'about' ? 'about' : 'hero';
+    const k =
+      kind === 'about' ? 'about' : kind === 'logo' ? 'logo' : 'hero';
     const relativeUrl = `/uploads/landings/${file.filename}`;
     return this.svc.saveUploadedImage(id, req.user.pid, k, relativeUrl);
   }

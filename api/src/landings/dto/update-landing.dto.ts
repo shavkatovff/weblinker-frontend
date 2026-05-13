@@ -20,6 +20,8 @@ export class UpdateLandingDto {
   })
   name?: string;
 
+  @IsOptional() @IsString() @MaxLength(120) category?: string;
+
   @IsOptional() @IsBoolean() blockHeader?: boolean;
   @IsOptional() @IsBoolean() blockHero?: boolean;
   @IsOptional() @IsBoolean() blockAbout?: boolean;
@@ -34,12 +36,14 @@ export class UpdateLandingDto {
   blocktheme?: string;
 
   @IsOptional() @IsString() @MaxLength(120) brandName?: string;
+  @IsOptional() @IsString() @MaxLength(4000) logourl?: string;
   @IsOptional() @IsString() @MaxLength(60) navAbout?: string;
   @IsOptional() @IsString() @MaxLength(60) navFaq?: string;
   @IsOptional() @IsString() @MaxLength(60) navContact?: string;
   @IsOptional() @IsString() @MaxLength(60) navCta?: string;
 
   @IsOptional() @IsString() @MaxLength(400) heroTitle?: string;
+  @IsOptional() @IsString() @MaxLength(4000) description?: string;
   @IsOptional() @IsString() @MaxLength(60) heroCta?: string;
   /** URL yoki `data:` */
   @IsOptional() @IsString() heroImageUrl?: string;

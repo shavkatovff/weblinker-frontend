@@ -16,6 +16,7 @@ export type DemoChoyxonaBlocks = {
 export type DemoChoyxonaContent = {
   blocks: DemoChoyxonaBlocks;
   brandName: string;
+  logoUrl: string;
   navAbout: string;
   navFaq: string;
   navContact: string;

@@ -177,6 +177,7 @@ model Landing {
 
   /// Manzil: /{name} noyob (faqat a-z, 0-9, -)
   name  String  @unique
+  category String @default("") @map("category")
   plan  String  @default("10kun")
   /// Obuna muddati tugaguncha
   expiredAt DateTime? @map("expired_at")
@@ -193,6 +194,7 @@ model Landing {
 
   /// Brend va navigatsiya
   brandName     String   @default("Mening saytim") @map("brand_name")
+  logourl       String   @default("") @map("logourl") @db.Text
   navAbout      String   @default("Biz haqimizda") @map("nav_about")
   navFaq        String   @default("FAQ") @map("nav_faq")
   navContact    String   @default("Aloqa") @map("nav_contact")
@@ -200,6 +202,7 @@ model Landing {
 
   /// Hero bo'limi
   heroTitle     String   @default("") @map("hero_title") @db.Text
+  description   String   @default("Qisqacha tavsif yozing") @map("hero_desc") @db.Text
   heroCta       String   @default("Bog'lanish") @map("hero_cta")
   heroImageUrl  String   @default("") @map("hero_image_url") @db.Text
 
