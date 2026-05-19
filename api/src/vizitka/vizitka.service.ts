@@ -139,7 +139,14 @@ export class VizitkaService {
 
     const businessName =
       (v.headline && v.headline.trim()) || v.name.replace(/-/g, ' ');
-    const expiredByDate = v.expiredAt != null && v.expiredAt < now;
+    const settings = await this.appSettings.get();
+    const effectiveExpiredAt =
+      v.expiredAt ??
+      VizitkaService.computeTrialExpiredAt(
+        v.createdAt,
+        settings.freePublishDays,
+      );
+    const expiredByDate = effectiveExpiredAt.getTime() < now.getTime();
 
     if (v.status === 'ACTIVE' && !expiredByDate) {
       return { site: this.toPublicSiteJson(v) };

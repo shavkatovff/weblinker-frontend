@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PublicPauseFromApi } from "@/components/sites/public-pause-from-api";
 import { PublicSite } from "@/components/sites/public-site";
 import { PublicSiteFromApi } from "@/components/sites/public-site-from-api";
 import { PublicLanding } from "@/components/sites/public-landing";
@@ -26,7 +27,15 @@ export default async function PublicSitePage({
   // 2) Landing topilsa — uni ko‘rsatamiz (yangi `Landing` modeli)
   const landingRes = await fetchPublicLandingFromApi(slug).catch(() => null);
   if (landingRes && "publicPause" in landingRes) {
-    redirect(`/expired?slug=${encodeURIComponent(slug)}`);
+    if (landingRes.publicPause.kind === "expired") {
+      redirect(`/expired?slug=${encodeURIComponent(slug)}`);
+    }
+    return (
+      <PublicPauseFromApi
+        pause={landingRes.publicPause}
+        site={undefined}
+      />
+    );
   }
   if (landingRes && "landing" in landingRes) {
     return <PublicLanding landing={landingRes.landing} />;

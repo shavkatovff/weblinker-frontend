@@ -22,7 +22,7 @@ export async function fetchPublicVizitkaFromApi(
   try {
     const r = await fetch(
       `${base()}/vizitka/public/${encodeURIComponent(slug)}`,
-      { next: { revalidate: 20 } },
+      { cache: "no-store" },
     );
     if (r.status === 404) {
       return null;

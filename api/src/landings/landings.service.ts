@@ -206,8 +206,11 @@ export class LandingsService {
     if (!landing) return null;
 
     const now = new Date();
-    const expiredByDate =
-      landing.expiredAt != null && landing.expiredAt < now;
+    const settings = await this.appSettings.get();
+    const effectiveExpiredAt =
+      landing.expiredAt ??
+      computeTrialExpiredAt(landing.createdAt, settings.freePublishDays);
+    const expiredByDate = effectiveExpiredAt.getTime() < now.getTime();
     if (!expiredByDate) {
       return { landing };
     }
