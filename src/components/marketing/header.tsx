@@ -14,7 +14,12 @@ export function Header() {
           >
             Tariflar
           </a>
-          <Button href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button
+            href="/login"
+            variant="secondary"
+            size="sm"
+            className="min-w-[5.25rem] justify-center shadow-sm"
+          >
             Kirish
           </Button>
         </div>

@@ -25,6 +25,7 @@ import {
   CreateVizitkaDto,
   UpdateVizitkaBodyDto,
 } from './dto/create-vizitka.dto';
+import { ExtendVizitkaSubscriptionDto } from './dto/extend-vizitka-subscription.dto';
 import { VizitkaService } from './vizitka.service';
 
 /** Multer multipart fayl (diskStorage) — Express.Multer merge muammosiz */
@@ -69,6 +70,16 @@ export class VizitkaController {
   @Get('pricing')
   getPricing() {
     return this.appSettings.getPublicPricing();
+  }
+
+  @Post(':id/extend-subscription')
+  @UseGuards(JwtAccessGuard)
+  async extendSubscription(
+    @Param('id') id: string,
+    @Req() req: { user: { sub: number; pid: string } },
+    @Body() dto: ExtendVizitkaSubscriptionDto,
+  ) {
+    return this.svc.extendSubscription(id, req.user.pid, dto.months);
   }
 
   @Get(':id')

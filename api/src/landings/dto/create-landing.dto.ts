@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -25,6 +26,12 @@ export class CreateLandingDto {
   name!: string;
 
   @IsOptional() @IsString() @MaxLength(120) category?: string;
+
+  /** 6 yoki 12 — yaratishda to‘langan paket (bepul sinov o‘rniga) */
+  @IsOptional()
+  @IsInt()
+  @IsIn([6, 12])
+  subscriptionMonths?: 6 | 12;
 
   @IsOptional() @IsBoolean() blockHeader?: boolean;
   @IsOptional() @IsBoolean() blockHero?: boolean;

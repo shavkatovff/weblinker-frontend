@@ -191,6 +191,8 @@ export function TahrirPlayground({
     return () => window.clearTimeout(id);
   }, []);
 
+  const pendingSubscriptionMonthsRef = useRef<6 | 12 | undefined>(undefined);
+
   useEffect(() => {
     if (landing.id !== "local") return;
     try {
@@ -210,6 +212,7 @@ export function TahrirPlayground({
         heroTitle: string;
         description?: string;
         category?: string;
+        subscriptionMonths?: 6 | 12;
       } | null => {
         if (typeof window === "undefined" || landingIdFromUrl) return null;
         const raw = sessionStorage.getItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
@@ -221,6 +224,7 @@ export function TahrirPlayground({
             heroTitle?: string;
             description?: string;
             category?: string;
+            subscriptionMonths?: 6 | 12;
           };
           sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
           const name = typeof w.name === "string" ? w.name.trim() : "";
@@ -237,7 +241,18 @@ export function TahrirPlayground({
             typeof w.description === "string" ? w.description : "";
           const category =
             typeof w.category === "string" ? w.category.trim() : "";
-          return { name, brandName: brand, heroTitle: hero, description, category };
+          const subscriptionMonths =
+            w.subscriptionMonths === 6 || w.subscriptionMonths === 12
+              ? w.subscriptionMonths
+              : undefined;
+          return {
+            name,
+            brandName: brand,
+            heroTitle: hero,
+            description,
+            category,
+            subscriptionMonths,
+          };
         } catch {
           sessionStorage.removeItem(TAHRIR_WIZARD_FROM_CREATE_KEY);
           return null;
@@ -250,7 +265,9 @@ export function TahrirPlayground({
         heroTitle: string;
         description?: string;
         category?: string;
+        subscriptionMonths?: 6 | 12;
       }) => {
+        pendingSubscriptionMonthsRef.current = w.subscriptionMonths;
         setLanding((prev) => ({
           ...prev,
           id: "local",
@@ -434,7 +451,13 @@ export function TahrirPlayground({
     setCreating(true);
     try {
       const body = buildPatchBody(landing);
-      const created = await createLanding({ ...body, name: landing.name });
+      const months = pendingSubscriptionMonthsRef.current;
+      const created = await createLanding({
+        ...body,
+        name: landing.name,
+        ...(months != null ? { subscriptionMonths: months } : {}),
+      });
+      pendingSubscriptionMonthsRef.current = undefined;
       setLanding(created);
       setSavedAt(created.updatedAt);
       setDirty(false);

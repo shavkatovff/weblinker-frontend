@@ -1,102 +1,57 @@
 import Link from "next/link";
+import { Logo } from "@/components/marketing/logo";
 
-export function NotFoundPublic() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-5">
-      <div className="mx-auto max-w-md text-center">
-        <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-          404 · weblinker.uz
-        </p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-          Bunday sayt topilmadi
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-neutral-600">
-          <span className="font-mono">weblinker.uz/name</span> manzilida hozircha
-          hech qanday sayt yo&apos;q. Bu nom ostida sizning saytingiz bo&apos;lishi
-          mumkin.
-        </p>
-        <div className="mt-8 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-          <Link
-            href="/"
-            className="inline-flex h-11 items-center justify-center rounded-md bg-black px-5 text-sm font-medium text-white hover:bg-neutral-800"
-          >
-            Weblinker haqida
-          </Link>
-          <Link
-            href="/dashboard/sites/new"
-            className="inline-flex h-11 items-center justify-center rounded-md border border-black px-5 text-sm font-medium text-black hover:bg-black hover:text-white"
-          >
-            O&apos;z saytingizni yarating
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+export function NotFoundPublic({ slug }: { slug?: string }) {
+  const displaySlug = slug?.trim() || "name";
 
-export function PausedSite({ businessName }: { businessName: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-5">
-      <div className="mx-auto max-w-md text-center">
-        <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-          Vaqtincha to&apos;xtatilgan
-        </p>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-          {businessName}
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-neutral-600">
-          Bu sayt vaqtincha o&apos;chirilgan. Biznes egasi obunani yangilashi
-          bilan qayta ishga tushadi.
-        </p>
-      </div>
-    </div>
-  );
-}
+    <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-4 py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-neutral-100 via-white to-teal-50/40"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-teal-200/40 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-amber-100/50 blur-3xl"
+      />
 
-/** Obuna tugaganda yoki muddati o&apos;tganda (jamoat ko&apos;rinishi) */
-export function PausedSiteSubscriptionExpired({
-  businessName,
-  slug,
-}: {
-  businessName: string;
-  slug: string;
-}) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-5">
-      <div className="mx-auto max-w-lg text-center">
-        <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-          Vaqtincha to&apos;xtatilgan
-        </p>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-          {businessName}
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-neutral-600">
-          <span className="font-mono text-neutral-800">weblinker.uz/{slug}</span>{" "}
-          manzilidagi bu nomdagi sayt vaqtincha to&apos;xtatilgan. Davom etish uchun
-          obunani yangilang yoki o&apos;z vizitkangizni yarating.
-        </p>
-        <div className="mt-8 rounded-2xl border border-[color:var(--border)] bg-gradient-to-b from-teal-50/60 to-white p-5 text-left shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-800">
-            Weblinker
+      <div className="relative z-10 w-full max-w-md">
+        <div className="rounded-[28px] border border-white/80 bg-white/85 p-8 text-center shadow-[0_24px_80px_-32px_rgba(0,0,0,0.2)] backdrop-blur-sm sm:p-10">
+          <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+            404 · weblinker.uz
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-            Online biznes vizitkasi — kontaktlar, ijtimoiy tarmoqlar, manzil bitta
-            sahifada, mobilga mos.
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
+            Bunday sayt topilmadi
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-neutral-600">
+            <span className="font-mono text-neutral-800">
+              weblinker.uz/{displaySlug}
+            </span>{" "}
+            manzilida hozircha hech qanday sayt yo&apos;q. Bu nom ostida sizning
+            saytingiz bo&apos;lishi mumkin.
           </p>
-          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+            <Link
+              href="/"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-black px-5 text-sm font-medium text-white transition hover:bg-neutral-800 sm:w-auto"
+            >
+              Weblinker haqida
+            </Link>
             <Link
               href="/dashboard/sites/new"
-              className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-black px-4 text-sm font-medium text-white transition hover:bg-neutral-800"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-black/10 bg-neutral-50 px-5 text-sm font-medium text-neutral-800 transition hover:bg-neutral-100 sm:w-auto"
             >
               O&apos;z saytingizni yarating
             </Link>
-            <Link
-              href="/"
-              className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50"
-            >
-              Bosh sahifa
-            </Link>
           </div>
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Logo className="opacity-40 transition-opacity hover:opacity-65" />
         </div>
       </div>
     </div>

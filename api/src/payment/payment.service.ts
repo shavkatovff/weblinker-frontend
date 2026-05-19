@@ -11,6 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AppSettingsService } from '../settings/app-settings.service';
 import {
   extendSubscriptionExpiry,
+  formatLandingSubscriptionMerchantId,
+  parseLandingSubscriptionMerchantId,
   parseVizitkaSubscriptionMerchantId,
 } from '../vizitka/subscription';
 import { checkCompleteSign, checkPrepareSign } from './click-sign';
@@ -103,7 +105,11 @@ export class PaymentService {
   async createClickPayment(
     userId: number,
     amountSom: number,
-    opts?: { vizitkaId?: string; subscriptionMonths?: 6 | 12 },
+    opts?: {
+      vizitkaId?: string;
+      landingId?: string;
+      subscriptionMonths?: 6 | 12;
+    },
   ) {
     const amount = this.assertAmountSom(amountSom);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -112,9 +118,12 @@ export class PaymentService {
     }
 
     const hasViz = opts?.vizitkaId != null;
+    const hasLnd = opts?.landingId != null;
     const hasMo = opts?.subscriptionMonths != null;
-    if (hasViz !== hasMo) {
-      throw new BadRequestException('vizitkaId va subscriptionMonths birga yuborilishi kerak');
+    if (!hasMo || (hasViz === hasLnd)) {
+      throw new BadRequestException(
+        'subscriptionMonths bilan vizitkaId yoki landingId (bittasi) yuborilishi kerak',
+      );
     }
 
     if (hasViz && hasMo) {
@@ -127,6 +136,21 @@ export class PaymentService {
       });
       if (!viz) {
         throw new NotFoundException('Vizitka topilmadi');
+      }
+    }
+
+    if (hasLnd && hasMo) {
+      const expected = await this.appSettings.priceLandingSomForMonths(
+        opts.subscriptionMonths!,
+      );
+      if (amount !== expected) {
+        throw new BadRequestException('Summa tanlangan paket narxi bilan mos emas');
+      }
+      const landing = await this.prisma.landing.findFirst({
+        where: { id: opts.landingId, ownerPublicId: user.publicId },
+      });
+      if (!landing) {
+        throw new NotFoundException('Landing topilmadi');
       }
     }
 
@@ -144,10 +168,17 @@ export class PaymentService {
       throw new BadRequestException('CLICK_SERVICE_ID yoki CLICK_MERCHANT_ID raqam emas');
     }
 
-    const merchantTransId =
-      hasViz && hasMo
-        ? `vxt|${opts!.vizitkaId}|${opts!.subscriptionMonths}|${userId}|${newRandomMerchantTransId(16)}`
-        : newRandomMerchantTransId(22);
+    let merchantTransId = newRandomMerchantTransId(22);
+    if (hasViz && hasMo) {
+      merchantTransId = `vxt|${opts!.vizitkaId}|${opts!.subscriptionMonths}|${userId}|${newRandomMerchantTransId(16)}`;
+    } else if (hasLnd && hasMo) {
+      merchantTransId = formatLandingSubscriptionMerchantId(
+        opts!.landingId!,
+        opts!.subscriptionMonths!,
+        userId,
+        newRandomMerchantTransId(16),
+      );
+    }
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -311,6 +342,7 @@ export class PaymentService {
     }
 
     const subMeta = parseVizitkaSubscriptionMerchantId(merchantTransId);
+    const lndMeta = parseLandingSubscriptionMerchantId(merchantTransId);
     if (subMeta) {
       if (subMeta.userId !== payment.userId) {
         return { error: -6, error_note: 'Transaction does not exist' };
@@ -334,6 +366,29 @@ export class PaymentService {
         return { error: -6, error_note: 'Transaction does not exist' };
       }
     }
+    if (lndMeta) {
+      if (lndMeta.userId !== payment.userId) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+      const expectedSom = await this.appSettings.priceLandingSomForMonths(
+        lndMeta.months,
+      );
+      if (payment.amount !== expectedSom) {
+        return { error: -2, error_note: 'Incorrect parameter amount' };
+      }
+      const owner = await this.prisma.user.findUnique({
+        where: { id: payment.userId },
+      });
+      if (!owner) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+      const landingCheck = await this.prisma.landing.findFirst({
+        where: { id: lndMeta.landingId, ownerPublicId: owner.publicId },
+      });
+      if (!landingCheck) {
+        return { error: -6, error_note: 'Transaction does not exist' };
+      }
+    }
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
@@ -345,31 +400,68 @@ export class PaymentService {
           return freshPayment;
         }
 
-        const meta = parseVizitkaSubscriptionMerchantId(freshPayment.merchantTransId);
+        const vizMeta = parseVizitkaSubscriptionMerchantId(
+          freshPayment.merchantTransId,
+        );
+        const lndMeta = parseLandingSubscriptionMerchantId(
+          freshPayment.merchantTransId,
+        );
         const now = new Date();
 
-        if (meta) {
+        if (vizMeta || lndMeta) {
           const userRow = await tx.user.findUnique({
             where: { id: freshPayment.userId },
           });
           if (!userRow) {
             throw new Error('NO_USER');
           }
-          const viz = await tx.vizitka.findFirst({
-            where: { id: meta.vizitkaId, ownerPublicId: userRow.publicId },
-          });
-          if (!viz) {
-            throw new Error('NO_VIZ');
+
+          if (vizMeta) {
+            const viz = await tx.vizitka.findFirst({
+              where: { id: vizMeta.vizitkaId, ownerPublicId: userRow.publicId },
+            });
+            if (!viz) {
+              throw new Error('NO_VIZ');
+            }
+            const nextEnd = extendSubscriptionExpiry(
+              viz.expiredAt,
+              vizMeta.months,
+              now,
+            );
+            await tx.vizitka.update({
+              where: { id: viz.id },
+              data: {
+                expiredAt: nextEnd,
+                status: 'ACTIVE',
+                expiryNoticeSentAt: null,
+              },
+            });
           }
-          const nextEnd = extendSubscriptionExpiry(viz.expiredAt, meta.months, now);
-          await tx.vizitka.update({
-            where: { id: viz.id },
-            data: {
-              expiredAt: nextEnd,
-              status: "ACTIVE",
-              expiryNoticeSentAt: null,
-            },
-          });
+
+          if (lndMeta) {
+            const landing = await tx.landing.findFirst({
+              where: {
+                id: lndMeta.landingId,
+                ownerPublicId: userRow.publicId,
+              },
+            });
+            if (!landing) {
+              throw new Error('NO_LND');
+            }
+            const nextEnd = extendSubscriptionExpiry(
+              landing.expiredAt,
+              lndMeta.months,
+              now,
+            );
+            await tx.landing.update({
+              where: { id: landing.id },
+              data: {
+                expiredAt: nextEnd,
+                plan: `${lndMeta.months}oy`,
+                expiryNoticeSentAt: null,
+              },
+            });
+          }
 
           return tx.payment.update({
             where: { id: freshPayment.id },

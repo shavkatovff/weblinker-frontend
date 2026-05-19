@@ -1,16 +1,25 @@
 "use client";
 
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { useSiteBySlug } from "@/lib/store/hooks";
 import { normalizeSite } from "@/lib/store/normalize";
-import { NotFoundPublic, PausedSite } from "./public-site-helpers";
+import { ExpiredPageView } from "./expired-page-view";
+import { ExpiredVizitkaPreview } from "./expired-preview";
 import { SiteRenderer } from "./site-renderer";
 
 export function PublicSite({ slug }: { slug: string }) {
+  const router = useRouter();
   const { site, ready } = useSiteBySlug(slug);
   const normalized = useMemo(() => (site ? normalizeSite(site) : undefined), [site]);
 
-  if (!ready) {
+  useEffect(() => {
+    if (ready && (!site || !normalized)) {
+      router.replace(`/404?slug=${encodeURIComponent(slug)}`);
+    }
+  }, [ready, site, normalized, slug, router]);
+
+  if (!ready || !site || !normalized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="h-1.5 w-12 animate-pulse rounded-full bg-black" />
@@ -18,12 +27,15 @@ export function PublicSite({ slug }: { slug: string }) {
     );
   }
 
-  if (!site || !normalized) {
-    return <NotFoundPublic />;
-  }
-
   if (normalized.status === "paused") {
-    return <PausedSite businessName={normalized.content.businessName} />;
+    return (
+      <ExpiredPageView
+        businessName={normalized.content.businessName}
+        slug={slug}
+        siteKind="vizitka"
+        preview={<ExpiredVizitkaPreview site={normalized} />}
+      />
+    );
   }
 
   if (normalized.type === "vizitka") {

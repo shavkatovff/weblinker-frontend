@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { AdminApiAccessGuard } from "../auth/admin-api-access.guard";
 import { AdminService } from "./admin.service";
+import { AdminUpdateLandingDto } from "./dto/admin-update-landing.dto";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
 import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
@@ -46,6 +47,24 @@ export class AdminController {
   @Delete("vizitkas/:id")
   async deleteVizitka(@Param("id") id: string) {
     return this.admin.deleteVizitka(id);
+  }
+
+  @Get("landings")
+  async listLandings() {
+    return this.admin.listLandings();
+  }
+
+  @Patch("landings/:id")
+  async updateLanding(
+    @Param("id") id: string,
+    @Body() body: AdminUpdateLandingDto,
+  ) {
+    return this.admin.updateLanding(id, body);
+  }
+
+  @Delete("landings/:id")
+  async deleteLanding(@Param("id") id: string) {
+    return this.admin.deleteLanding(id);
   }
 
   @Get("users")

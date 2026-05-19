@@ -1,53 +1,74 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { SiteCardActions } from "@/components/dashboard/site-card-actions";
+import { VizitkaSubscriptionPanel } from "@/components/dashboard/vizitka-subscription-panel";
 import { UnknownSite } from "@/lib/store/types";
-import { trialDaysLeft, deleteSite, duplicateSite } from "@/lib/store/store";
+import { trialDaysLeft, deleteSite, duplicateSite, saveSite } from "@/lib/store/store";
 import { downloadSiteQRCode } from "@/components/editor/qr-code";
 import { cn } from "@/lib/cn";
 import { api, ApiError } from "@/lib/api";
 
-export function SiteCard({ site }: { site: UnknownSite }) {
-  const days = trialDaysLeft(site);
+type SiteCardProps = {
+  site: UnknownSite;
+  onUpdated?: (site: UnknownSite) => void;
+};
+
+export function SiteCard({ site, onUpdated }: SiteCardProps) {
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [current, setCurrent] = useState(site);
+
+  useEffect(() => {
+    setCurrent(site);
+  }, [site]);
+
+  const handleExtended = useCallback(
+    (next: UnknownSite) => {
+      setCurrent(next);
+      saveSite(next);
+      onUpdated?.(next);
+      setExtendOpen(false);
+    },
+    [onUpdated],
+  );
+
+  const days = trialDaysLeft(current);
+  const showExtend = current.type === "vizitka";
+
   return (
-    <article className="flex flex-col gap-5 rounded-2xl border border-[color:var(--border)] bg-white p-5 transition-colors hover:border-black">
+    <article className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border)] bg-white p-4 transition-colors hover:border-black sm:gap-5 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div
             aria-hidden
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-black text-sm font-semibold text-white"
           >
-            {site.content.accentInitials}
+            {current.content.accentInitials}
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-base font-semibold text-black">
-              {site.content.businessName}
+              {current.content.businessName}
             </h3>
             <p className="truncate text-xs text-neutral-500">
-              weblinker.uz/<span className="font-mono">{site.slug}</span>
+              weblinker.uz/<span className="font-mono">{current.slug}</span>
             </p>
-            {site.content.category?.trim() ? (
+            {current.content.category?.trim() ? (
               <p className="mt-0.5 truncate text-xs font-medium text-neutral-700">
-                {site.content.category}
+                {current.content.category}
               </p>
             ) : null}
           </div>
         </div>
-        <StatusBadge status={site.status} />
+        <StatusBadge status={current.status} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3 rounded-lg border border-[color:var(--border)] bg-neutral-50 p-3 text-center">
+      <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-[color:var(--border)] bg-neutral-50 p-2.5 text-center sm:gap-3 sm:p-3">
         <Meta
           label="Tarif"
-          value={site.type === "vizitka" ? "Vizitka" : "Landing"}
+          value={current.type === "vizitka" ? "Vizitka" : "Landing"}
         />
-        <Meta
-          label="Oxirgi"
-          value={formatRelative(site.updatedAt)}
-        />
+        <Meta label="Oxirgi" value={formatRelative(current.updatedAt)} />
         <Meta
           label="Obuna"
           value={days > 0 ? `${days} kun` : "Tugagan"}
@@ -55,19 +76,50 @@ export function SiteCard({ site }: { site: UnknownSite }) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button href={`/dashboard/sites/${site.id}`} size="sm" className="flex-1">
-          Tahrirlash
-        </Button>
-        <Link
-          href={`/${site.slug}`}
-          target="_blank"
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-[color:var(--border)] px-3 text-sm font-medium text-black transition-colors hover:border-black"
+      <SiteCardActions
+        editHref={`/dashboard/sites/${current.id}`}
+        viewHref={`/${current.slug}`}
+        onExtend={showExtend ? () => setExtendOpen(true) : undefined}
+        menu={<Menu site={current} />}
+      />
+
+      {showExtend && extendOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="extend-vizitka-title"
         >
-          Ko&apos;rish
-        </Link>
-        <Menu site={site} />
-      </div>
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Yopish"
+            onClick={() => setExtendOpen(false)}
+          />
+          <div className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[color:var(--border)] bg-white p-4 shadow-xl sm:rounded-2xl sm:p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <h2
+                id="extend-vizitka-title"
+                className="text-lg font-semibold text-black"
+              >
+                Obunani uzaytirish
+              </h2>
+              <button
+                type="button"
+                onClick={() => setExtendOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-black"
+                aria-label="Yopish"
+              >
+                ×
+              </button>
+            </div>
+            <VizitkaSubscriptionPanel
+              site={current}
+              onExtended={handleExtended}
+            />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -83,12 +135,12 @@ function Meta({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.15em] text-neutral-500">
+      <p className="text-[9px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[10px] sm:tracking-[0.15em]">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 text-xs font-medium",
+          "mt-1 text-[11px] font-medium sm:text-xs",
           warning ? "text-red-700" : "text-black",
         )}
       >

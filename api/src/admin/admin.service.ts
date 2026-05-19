@@ -5,8 +5,13 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  assertNameAllowed,
+  assertNameFreeAcrossModels,
+} from "../common/reserved-names";
 import { VizitkaService } from "../vizitka/vizitka.service";
 import { AppSettingsService } from "../settings/app-settings.service";
+import { AdminUpdateLandingDto } from "./dto/admin-update-landing.dto";
 import { AdminUpdateVizitkaDto } from "./dto/admin-update-vizitka.dto";
 import { UpdateBalanceDto } from "./dto/update-balance.dto";
 import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
@@ -20,9 +25,33 @@ export class AdminService {
   ) {}
 
   async stats() {
-    const [users, vizitkas, paymentsTotal, paymentsPaid] = await Promise.all([
+    const now = new Date();
+    const [
+      users,
+      vizitkas,
+      landings,
+      landingsActive,
+      landingsExpired,
+      landingsTrial,
+      landingsPaid6,
+      landingsPaid12,
+      paymentsTotal,
+      paymentsPaid,
+    ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.vizitka.count(),
+      this.prisma.landing.count(),
+      this.prisma.landing.count({
+        where: {
+          OR: [{ expiredAt: null }, { expiredAt: { gt: now } }],
+        },
+      }),
+      this.prisma.landing.count({
+        where: { expiredAt: { lt: now } },
+      }),
+      this.prisma.landing.count({ where: { plan: "10kun" } }),
+      this.prisma.landing.count({ where: { plan: "6oy" } }),
+      this.prisma.landing.count({ where: { plan: "12oy" } }),
       this.prisma.payment.count(),
       this.prisma.payment.count({ where: { status: "PAID" } }),
     ]);
@@ -33,10 +62,116 @@ export class AdminService {
     return {
       users,
       vizitkas,
+      landings,
+      landingsActive,
+      landingsExpired,
+      landingsTrial,
+      landingsPaid6,
+      landingsPaid12,
       paymentsTotal,
       paymentsPaid,
       paidAmountSom: paidAgg._sum.amount ?? 0,
     };
+  }
+
+  async listLandings() {
+    const rows = await this.prisma.landing.findMany({
+      orderBy: { updatedAt: "desc" },
+      include: {
+        user: {
+          select: {
+            number: true,
+            publicId: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+    return {
+      items: rows.map((l) => ({
+        id: l.id,
+        name: l.name,
+        brandName: l.brandName,
+        category: l.category,
+        plan: l.plan,
+        expiredAt: l.expiredAt ? l.expiredAt.toISOString() : null,
+        createdAt: l.createdAt.toISOString(),
+        updatedAt: l.updatedAt.toISOString(),
+        ownerNumber: l.user.number,
+        ownerPublicId: l.user.publicId,
+        ownerName: l.user.fullName,
+      })),
+    };
+  }
+
+  async updateLanding(id: string, dto: AdminUpdateLandingDto) {
+    const existing = await this.prisma.landing.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException("Landing topilmadi");
+
+    if (dto.name !== undefined && dto.name !== existing.name) {
+      assertNameAllowed(dto.name);
+      await assertNameFreeAcrossModels(this.prisma, dto.name, {
+        kind: "landing",
+        id,
+      });
+    }
+
+    const patch: Record<string, unknown> = {};
+    const skipExpiredFromBody = dto.extendByDays != null;
+
+    if (dto.extendByDays != null) {
+      const now = new Date();
+      const base =
+        existing.expiredAt != null && existing.expiredAt.getTime() > now.getTime()
+          ? existing.expiredAt
+          : now;
+      patch.expiredAt = new Date(
+        base.getTime() + dto.extendByDays * 86400000,
+      );
+    }
+
+    for (const [k, val] of Object.entries(dto)) {
+      if (val === undefined) continue;
+      if (k === "extendByDays") continue;
+      if (k === "expiredAt") {
+        if (skipExpiredFromBody) continue;
+        patch.expiredAt = val === null ? null : new Date(val as string);
+        continue;
+      }
+      patch[k] = val;
+    }
+
+    const mergedExpired =
+      patch.expiredAt !== undefined
+        ? (patch.expiredAt as Date | null)
+        : existing.expiredAt;
+    if (mergedExpired != null && mergedExpired.getTime() > Date.now()) {
+      patch.expiryNoticeSentAt = null;
+    }
+
+    const landing = await this.prisma.landing.update({
+      where: { id },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: patch as any,
+    });
+    return {
+      landing: {
+        id: landing.id,
+        name: landing.name,
+        brandName: landing.brandName,
+        plan: landing.plan,
+        expiredAt: landing.expiredAt
+          ? landing.expiredAt.toISOString()
+          : null,
+      },
+    };
+  }
+
+  async deleteLanding(id: string) {
+    const l = await this.prisma.landing.findUnique({ where: { id } });
+    if (!l) throw new NotFoundException("Landing topilmadi");
+    await this.prisma.landing.delete({ where: { id } });
+    return { ok: true };
   }
 
   async listVizitkas() {

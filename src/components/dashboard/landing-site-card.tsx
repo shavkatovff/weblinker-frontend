@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { SiteCardActions } from "@/components/dashboard/site-card-actions";
+import { LandingSubscriptionPanel } from "@/components/dashboard/landing-subscription-panel";
 import { deleteLanding } from "@/lib/landings/client";
 import type { LandingRecord } from "@/lib/landings/types";
 import {
@@ -15,55 +15,71 @@ import { cn } from "@/lib/cn";
 type Props = {
   landing: LandingRecord;
   onDeleted?: () => void;
+  onUpdated?: (landing: LandingRecord) => void;
 };
 
-export function LandingSiteCard({ landing, onDeleted }: Props) {
-  const days = landingDaysLeft(landing);
-  const initials = landingInitials(landing.brandName, landing.name);
+export function LandingSiteCard({ landing, onDeleted, onUpdated }: Props) {
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [current, setCurrent] = useState(landing);
+
+  useEffect(() => {
+    setCurrent(landing);
+  }, [landing]);
+
+  const handleExtended = useCallback(
+    (next: LandingRecord) => {
+      setCurrent(next);
+      onUpdated?.(next);
+      setExtendOpen(false);
+    },
+    [onUpdated],
+  );
+  const days = landingDaysLeft(current);
+  const initials = landingInitials(current.brandName, current.name);
   const title =
-    landing.brandName.trim() || landing.name.replace(/-/g, " ");
+    current.brandName.trim() || current.name.replace(/-/g, " ");
 
   const obunaLabel =
     days === null ? "—" : days > 0 ? `${days} kun` : "Tugagan";
 
   return (
-    <article className="flex flex-col gap-5 rounded-2xl border border-[color:var(--border)] bg-white p-5 transition-colors hover:border-black">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div
-            aria-hidden
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#7e4312] text-sm font-semibold text-white"
-          >
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-black">
+    <article className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border)] bg-white p-4 transition-colors hover:border-black sm:gap-5 sm:p-5">
+      <div className="flex items-start gap-3">
+        <div
+          aria-hidden
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7e4312] text-sm font-semibold text-white"
+        >
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <h3 className="min-w-0 max-w-full truncate text-base font-semibold text-black">
               {title}
             </h3>
-            <p className="truncate text-xs text-neutral-500">
-              weblinker.uz/
-              <span className="font-mono">{landing.name}</span>
-            </p>
-            {landing.category.trim() ? (
-              <p className="mt-0.5 truncate text-xs font-medium text-neutral-700">
-                {landing.category}
-              </p>
-            ) : null}
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-[0.12em]",
+                "border-emerald-200 bg-emerald-50 text-emerald-900",
+              )}
+            >
+              Landing
+            </span>
           </div>
+          <p className="mt-1 truncate text-xs text-neutral-500">
+            weblinker.uz/
+            <span className="font-mono">{current.name}</span>
+          </p>
+          {current.category.trim() ? (
+            <p className="mt-0.5 truncate text-xs font-medium text-neutral-700">
+              {current.category}
+            </p>
+          ) : null}
         </div>
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
-            "border-emerald-200 bg-emerald-50 text-emerald-900",
-          )}
-        >
-          Landing
-        </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 rounded-lg border border-[color:var(--border)] bg-neutral-50 p-3 text-center">
-        <Meta label="Tur" value="Landing sahifa" />
-        <Meta label="Oxirgi" value={formatRelative(landing.updatedAt)} />
+      <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-[color:var(--border)] bg-neutral-50 p-2.5 text-center sm:gap-3 sm:p-3">
+        <Meta label="Tur" value="Landing" />
+        <Meta label="Oxirgi" value={formatRelative(current.updatedAt)} />
         <Meta
           label="Obuna"
           value={obunaLabel}
@@ -71,24 +87,39 @@ export function LandingSiteCard({ landing, onDeleted }: Props) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          href={`/tahrir?id=${encodeURIComponent(landing.id)}`}
-          size="sm"
-          className="flex-1"
-        >
-          Tahrirlash
-        </Button>
-        <Link
-          href={`/${landing.name}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-[color:var(--border)] px-3 text-sm font-medium text-black transition-colors hover:border-black"
-        >
-          Ko&apos;rish
-        </Link>
-        <LandingMenu landing={landing} onDeleted={onDeleted} />
-      </div>
+      <SiteCardActions
+        editHref={`/tahrir?id=${encodeURIComponent(current.id)}`}
+        viewHref={`/${current.name}`}
+        onExtend={() => setExtendOpen(true)}
+        menu={<LandingMenu landing={current} onDeleted={onDeleted} />}
+      />
+
+      {extendOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="extend-landing-title">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Yopish"
+            onClick={() => setExtendOpen(false)}
+          />
+          <div className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[color:var(--border)] bg-white p-4 shadow-xl sm:rounded-2xl sm:p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <h2 id="extend-landing-title" className="text-lg font-semibold text-black">
+                Obunani uzaytirish
+              </h2>
+              <button
+                type="button"
+                onClick={() => setExtendOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-black"
+                aria-label="Yopish"
+              >
+                ×
+              </button>
+            </div>
+            <LandingSubscriptionPanel landing={current} onExtended={handleExtended} />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -104,12 +135,12 @@ function Meta({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.15em] text-neutral-500">
+      <p className="text-[9px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[10px] sm:tracking-[0.15em]">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 text-xs font-medium",
+          "mt-1 text-[11px] font-medium sm:text-xs",
           warning ? "text-red-700" : "text-black",
         )}
       >

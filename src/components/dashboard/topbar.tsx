@@ -39,7 +39,11 @@ export function Topbar({ title, breadcrumb, actions }: Props) {
             {title}
           </h1>
         </div>
-        {actions ? <div className="flex flex-shrink-0 gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex w-full flex-shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </>
   );

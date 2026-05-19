@@ -11,7 +11,7 @@ export type PublicPausePayload = {
 
 export type PublicVizitkaFetchResult =
   | { site: UnknownSite }
-  | { publicPause: PublicPausePayload };
+  | { publicPause: PublicPausePayload; site?: UnknownSite };
 
 /**
  * API: { site } — faol sayt; { publicPause } — pauza / obuna tugagan.
@@ -32,7 +32,13 @@ export async function fetchPublicVizitkaFromApi(
     }
     const json = (await r.json()) as Record<string, unknown>;
     if (json.publicPause && typeof json.publicPause === "object") {
-      return { publicPause: json.publicPause as PublicPausePayload };
+      return {
+        publicPause: json.publicPause as PublicPausePayload,
+        site:
+          json.site && typeof json.site === "object"
+            ? (json.site as UnknownSite)
+            : undefined,
+      };
     }
     if (json.site) {
       return { site: json.site as UnknownSite };

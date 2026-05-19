@@ -14,6 +14,12 @@ import { cn } from "@/lib/cn";
 type Stats = {
   users: number;
   vizitkas: number;
+  landings: number;
+  landingsActive: number;
+  landingsExpired: number;
+  landingsTrial: number;
+  landingsPaid6: number;
+  landingsPaid12: number;
   paymentsTotal: number;
   paymentsPaid: number;
   paidAmountSom: number;
@@ -56,6 +62,15 @@ function IconCheck({ className }: { className?: string }) {
     <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
       <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5" />
       <path d="M7 11l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconLanding({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
+      <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6 8h10M6 11h7M6 14h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -121,6 +136,48 @@ export default function AdminHomePage() {
       accent: "bg-violet-500/15 text-violet-700 ring-violet-500/20",
     },
     {
+      label: "Landinglar (jami)",
+      value: stats.landings,
+      href: "/gradeadmin/landings",
+      icon: IconLanding,
+      accent: "bg-orange-500/15 text-orange-900 ring-orange-500/20",
+    },
+    {
+      label: "Landing — faol",
+      value: stats.landingsActive,
+      href: "/gradeadmin/landings",
+      icon: IconCheck,
+      accent: "bg-emerald-500/12 text-emerald-800 ring-emerald-500/20",
+    },
+    {
+      label: "Landing — tugagan",
+      value: stats.landingsExpired,
+      href: "/gradeadmin/landings",
+      icon: IconReceipt,
+      accent: "bg-red-500/10 text-red-800 ring-red-500/15",
+    },
+    {
+      label: "Landing — sinov",
+      value: stats.landingsTrial,
+      href: "/gradeadmin/landings",
+      icon: IconLanding,
+      accent: "bg-teal-500/12 text-teal-800 ring-teal-500/20",
+    },
+    {
+      label: "Landing — 6 oy",
+      value: stats.landingsPaid6,
+      href: "/gradeadmin/landings",
+      icon: IconLanding,
+      accent: "bg-amber-500/12 text-amber-900 ring-amber-500/20",
+    },
+    {
+      label: "Landing — 12 oy",
+      value: stats.landingsPaid12,
+      href: "/gradeadmin/landings",
+      icon: IconLanding,
+      accent: "bg-amber-500/15 text-amber-950 ring-amber-500/25",
+    },
+    {
       label: "To‘lovlar (jami)",
       value: stats.paymentsTotal,
       href: "/gradeadmin/payments",
@@ -147,11 +204,53 @@ export default function AdminHomePage() {
     <div className="space-y-10">
       <AdminPageHeader
         title="Umumiy ko‘rinish"
-        description="Platformadagi foydalanuvchilar, vizitkalar va CLICK orqali tushgan to‘lovlar."
+        description="Foydalanuvchilar, vizitka va landing obunalari, CLICK to‘lovlari."
       />
 
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        Landing statistikasi
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {cards
+          .filter((c) => c.label.startsWith("Landing"))
+          .map((c, i) => {
+            const Icon = c.icon;
+            return (
+              <Link
+                key={c.label}
+                href={c.href}
+                className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-all hover:border-orange-300/40 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                      {c.label.replace("Landing — ", "").replace("Landinglar (jami)", "Jami")}
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-zinc-900">
+                      {c.value}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
+                      c.accent,
+                    )}
+                  >
+                    <Icon className="h-[22px] w-[22px]" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+      </div>
+
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        Umumiy
+      </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map((c, i) => {
+        {cards
+          .filter((c) => !c.label.startsWith("Landing"))
+          .map((c, i, arr) => {
           const Icon = c.icon;
           return (
             <Link
@@ -159,7 +258,7 @@ export default function AdminHomePage() {
               href={c.href}
               className={cn(
                 "group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-all hover:border-teal-300/40 hover:shadow-md",
-                i === cards.length - 1 && "sm:col-span-2 xl:col-span-3",
+                i === arr.length - 1 && "sm:col-span-2 xl:col-span-3",
               )}
             >
               <div className="flex items-start justify-between gap-3">

@@ -19,6 +19,7 @@ import {
 import {
   computeSubscriptionExpiredAt,
   DEFAULT_VIZITKA_FREE_PUBLISH_DAYS,
+  extendSubscriptionExpiry,
 } from './subscription';
 
 @Injectable()
@@ -144,6 +145,8 @@ export class VizitkaService {
       return { site: this.toPublicSiteJson(v) };
     }
 
+    const sitePreview = this.toPublicSiteJson(v);
+
     if (v.status === 'PAUSED') {
       return {
         publicPause: {
@@ -151,6 +154,7 @@ export class VizitkaService {
           slug: v.name,
           businessName,
         },
+        site: sitePreview,
       };
     }
 
@@ -160,6 +164,7 @@ export class VizitkaService {
         slug: v.name,
         businessName,
       },
+      site: sitePreview,
     };
   }
 
@@ -298,6 +303,52 @@ export class VizitkaService {
     if (r.count === 0) {
       throw new NotFoundException('Vizitka topilmadi');
     }
+  }
+
+  /** Mavjud vizitka obunasini balansdan uzaytirish */
+  async extendSubscription(
+    vizitkaId: string,
+    ownerPublicId: string,
+    months: 6 | 12,
+  ) {
+    const priceSom = await this.appSettings.priceSomForMonths(months);
+    const price = new Prisma.Decimal(priceSom);
+    const now = new Date();
+
+    const v = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.vizitka.findFirst({
+        where: { id: vizitkaId, ownerPublicId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Vizitka topilmadi');
+      }
+      const user = await tx.user.findUnique({
+        where: { publicId: ownerPublicId },
+      });
+      if (!user) {
+        throw new NotFoundException('Foydalanuvchi topilmadi');
+      }
+      if (user.balance.lt(price)) {
+        throw new BadRequestException(
+          `Balans yetarli emas. Paket: ${priceSom.toLocaleString('uz-UZ')} so'm. Joriy balans: ${Number(user.balance).toLocaleString('uz-UZ')} so'm.`,
+        );
+      }
+      await tx.user.update({
+        where: { id: user.id },
+        data: { balance: { decrement: price } },
+      });
+      const nextEnd = extendSubscriptionExpiry(existing.expiredAt, months, now);
+      return tx.vizitka.update({
+        where: { id: vizitkaId },
+        data: {
+          expiredAt: nextEnd,
+          status: 'ACTIVE',
+          expiryNoticeSentAt: null,
+        },
+      });
+    });
+
+    return { site: this.toPublicSiteJson(v) };
   }
 
   async getMineOne(id: string, ownerPublicId: string) {

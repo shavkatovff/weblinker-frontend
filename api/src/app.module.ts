@@ -12,6 +12,7 @@ import { PaymentModule } from './payment/payment.module';
 import { AdminModule } from './admin/admin.module';
 import { SettingsModule } from './settings/settings.module';
 import { LandingsModule } from './landings/landings.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { LandingsModule } from './landings/landings.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     SettingsModule,
+    SmsModule,
     AuthModule,
     TelegramModule,
     VizitkaModule,

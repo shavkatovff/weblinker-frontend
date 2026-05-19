@@ -386,6 +386,13 @@ export function CreateSiteForm() {
         }
         return;
       }
+    },
+    [],
+  );
+
+  const payLandingPackage = useCallback(
+    async (tier: 6 | 12) => {
+      setFinishError(null);
       const price = landingPriceByMonths[tier];
       sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
       setTierPayLoading(tier);
@@ -424,6 +431,14 @@ export function CreateSiteForm() {
     [landingPriceByMonths],
   );
 
+  const startLandingTrial = useCallback(() => {
+    setFinishError(null);
+    sessionStorage.removeItem(SESSION_LANDING_SUB_MONTHS);
+    sessionStorage.removeItem(SESSION_LANDING_AI_PENDING);
+    setLandingTier("free");
+    setStep(1);
+  }, []);
+
   const goToTahrirAfterLandingDomain = useCallback(async () => {
     if (!canNextFromStep1 || landingTier === null) return;
     setFinishError(null);
@@ -453,6 +468,8 @@ export function CreateSiteForm() {
           heroTitle: businessName.trim(),
           description: DEFAULT_LANDING_HERO_DESCRIPTION,
           category: category.trim(),
+          subscriptionMonths:
+            landingTier === 6 || landingTier === 12 ? landingTier : undefined,
         }),
       );
     } catch {
@@ -694,7 +711,9 @@ export function CreateSiteForm() {
             setSiteType(null);
             setStep(1);
           }}
-          onSelectTier={handleLandingTierSelect}
+          onSelectFree={() => void handleLandingTierSelect("free")}
+          onStartTrial={startLandingTrial}
+          onPayPackage={payLandingPackage}
         />
       </div>
     );
@@ -1073,15 +1092,20 @@ function VizitkaPackagePicker({
 
 function LandingPackagePicker({
   onBack,
-  onSelectTier,
+  onSelectFree,
+  onStartTrial,
+  onPayPackage,
   pricing,
   payingTier,
 }: {
   onBack: () => void;
-  onSelectTier: (tier: "free" | "ai" | 6 | 12) => void | Promise<void>;
+  onSelectFree: () => void | Promise<void>;
+  onStartTrial: () => void;
+  onPayPackage: (months: 6 | 12) => void | Promise<void>;
   pricing: PublicPricing;
   payingTier: 6 | 12 | "ai" | null;
 }) {
+  const [selectedMonths, setSelectedMonths] = useState<6 | 12 | null>(null);
   const freePackage = useMemo(
     () => buildLandingFreePackage(pricing.freePublishDays),
     [pricing.freePublishDays],
@@ -1095,6 +1119,8 @@ function LandingPackagePicker({
     return list.find((p) => p.months === 12) ?? list[list.length - 1];
   }, [pricing]);
   const busy = payingTier !== null;
+  const selectedPkg =
+    selectedMonths === 6 ? pkg6 : selectedMonths === 12 ? pkg12 : null;
   return (
     <div>
       <div className="mb-8 text-center">
@@ -1107,7 +1133,7 @@ function LandingPackagePicker({
           landing · <strong className="font-medium text-neutral-800">6 oy</strong> yoki{" "}
           <strong className="font-medium text-neutral-800">1 yillik</strong> obuna. Yetishmaydigan summa{" "}
           <strong className="font-medium text-neutral-800">CLICK</strong> orqali balansga
-          o&apos;tadi; obuna paketi saytni yakunlaganingizda balansdan yechiladi.
+          o&apos;tadi. Obuna paketida avval sinov yoki to‘lovni tanlang.
         </p>
       </div>
 
@@ -1115,7 +1141,7 @@ function LandingPackagePicker({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void onSelectTier("free")}
+          onClick={() => void onSelectFree()}
           className="group relative flex flex-col gap-3 rounded-2xl border-2 border-dashed border-teal-400/80 bg-gradient-to-b from-teal-50/80 to-white p-6 text-left transition-all hover:border-teal-600 hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
         >
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
@@ -1167,8 +1193,13 @@ function LandingPackagePicker({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void onSelectTier(6)}
-          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-neutral-300 bg-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.25)] transition-all hover:border-black hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+          onClick={() => setSelectedMonths(6)}
+          className={cn(
+            "group relative flex flex-col gap-3 rounded-2xl border-2 bg-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.25)] transition-all hover:border-black hover:shadow-md disabled:pointer-events-none disabled:opacity-50",
+            selectedMonths === 6
+              ? "border-black ring-2 ring-black/15"
+              : "border-neutral-300",
+          )}
         >
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-neutral-800 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
             Obuna · 6 oy
@@ -1195,15 +1226,20 @@ function LandingPackagePicker({
             )}
           </div>
           <span className="mt-auto pt-2 text-sm font-semibold text-black">
-            {payingTier === 6 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+            {selectedMonths === 6 ? "Tanlangan" : "Tanlash →"}
           </span>
         </button>
 
         <button
           type="button"
           disabled={busy}
-          onClick={() => void onSelectTier(12)}
-          className="group relative flex flex-col gap-3 rounded-2xl border-2 border-black bg-gradient-to-b from-amber-50/70 to-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)] transition-all hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+          onClick={() => setSelectedMonths(12)}
+          className={cn(
+            "group relative flex flex-col gap-3 rounded-2xl border-2 bg-gradient-to-b from-amber-50/70 to-white p-6 text-left shadow-[0_18px_40px_-24px_rgba(0,0,0,0.35)] transition-all hover:shadow-md disabled:pointer-events-none disabled:opacity-50",
+            selectedMonths === 12
+              ? "border-black ring-2 ring-black/15"
+              : "border-black/40",
+          )}
         >
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
             Obuna · 1 yil
@@ -1230,10 +1266,41 @@ function LandingPackagePicker({
             )}
           </div>
           <span className="mt-auto pt-2 text-sm font-semibold text-black">
-            {payingTier === 12 ? "CLICK ga yo‘naltirilmoqda…" : "Tanlash →"}
+            {selectedMonths === 12 ? "Tanlangan" : "Tanlash →"}
           </span>
         </button>
       </div>
+
+      {selectedMonths != null && selectedPkg ? (
+        <div className="mt-6 rounded-2xl border border-[color:var(--border)] bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-sm font-semibold text-black">
+            {selectedPkg.title} — {formatSom(selectedPkg.priceSom)}
+          </p>
+          <p className="mt-1 text-xs text-neutral-600">
+            Bepul {pricing.freePublishDays} kun sinov bilan boshlang yoki paketni hozir to‘lang.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onStartTrial}
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-teal-600 bg-teal-50 px-4 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 disabled:opacity-50"
+            >
+              {pricing.freePublishDays} kun sinov muddati
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void onPayPackage(selectedMonths)}
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-black px-4 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {payingTier === selectedMonths
+                ? "To‘lov tekshirilmoqda…"
+                : "To‘lash"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-10 flex justify-center">
         <button

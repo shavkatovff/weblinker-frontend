@@ -9,6 +9,8 @@ type SettingsRow = {
   freePublishDays: number;
   paket6Som: number;
   paket12Som: number;
+  landingPaket6Som: number;
+  landingPaket12Som: number;
   updatedAt: string;
 };
 
@@ -21,6 +23,8 @@ export default function AdminSettingsPage() {
     freePublishDays: "10",
     paket6Som: "75000",
     paket12Som: "125000",
+    landingPaket6Som: "780000",
+    landingPaket12Som: "1180000",
   });
 
   const load = useCallback(async () => {
@@ -32,6 +36,8 @@ export default function AdminSettingsPage() {
         freePublishDays: String(r.freePublishDays),
         paket6Som: String(r.paket6Som),
         paket12Som: String(r.paket12Som),
+        landingPaket6Som: String(r.landingPaket6Som),
+        landingPaket12Som: String(r.landingPaket12Som),
       });
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Yuklashda xato");
@@ -48,11 +54,16 @@ export default function AdminSettingsPage() {
     const freePublishDays = parseInt(form.freePublishDays, 10);
     const paket6Som = parseInt(form.paket6Som, 10);
     const paket12Som = parseInt(form.paket12Som, 10);
-    if (
-      ![freePublishDays, paket6Som, paket12Som].every(
-        (n) => Number.isFinite(n) && n >= 1,
-      )
-    ) {
+    const landingPaket6Som = parseInt(form.landingPaket6Som, 10);
+    const landingPaket12Som = parseInt(form.landingPaket12Som, 10);
+    const nums = [
+      freePublishDays,
+      paket6Som,
+      paket12Som,
+      landingPaket6Som,
+      landingPaket12Som,
+    ];
+    if (!nums.every((n) => Number.isFinite(n) && n >= 1)) {
       setErr("Barcha maydonlar musbat butun son bo‘lishi kerak");
       return;
     }
@@ -60,7 +71,7 @@ export default function AdminSettingsPage() {
       setErr("Bepul kunlar 365 dan oshmasin");
       return;
     }
-    if (Math.min(paket6Som, paket12Som) < 1000) {
+    if (Math.min(paket6Som, paket12Som, landingPaket6Som, landingPaket12Som) < 1000) {
       setErr("Har bir paket narxi kamida 1000 so‘m");
       return;
     }
@@ -73,6 +84,8 @@ export default function AdminSettingsPage() {
           freePublishDays,
           paket6Som,
           paket12Som,
+          landingPaket6Som,
+          landingPaket12Som,
         }),
       });
       setS(r);
@@ -80,6 +93,8 @@ export default function AdminSettingsPage() {
         freePublishDays: String(r.freePublishDays),
         paket6Som: String(r.paket6Som),
         paket12Som: String(r.paket12Som),
+        landingPaket6Som: String(r.landingPaket6Som),
+        landingPaket12Som: String(r.landingPaket12Som),
       });
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Saqlashda xato");
@@ -108,7 +123,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Platforma sozlamalari"
-        description="Bepul nashr muddati va vizitka obuna paketlari narxlari (so‘m). Faqat 6 va 12 oylik paketlar. O‘zgarishlar yangi yaratiladigan vizitka va to‘lovlarda qo‘llanadi."
+        description="Bepul sinov muddati, vizitka va landing obuna paketlari (6 va 12 oy, so‘m). Yangi yaratish va to‘lovlarda qo‘llanadi."
       />
 
       {err ? <AdminAlert>{err}</AdminAlert> : null}
@@ -126,9 +141,12 @@ export default function AdminSettingsPage() {
               onChange={(e) => setForm((f) => ({ ...f, freePublishDays: e.target.value }))}
             />
             <p className="mt-1 text-xs text-zinc-500">
-              Yangi vizitka uchun bepul muddati shu kunlarda belgilanadi.
+              Yangi vizitka va landing sinov muddati shu kunlarda belgilanadi.
             </p>
           </label>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            Vizitka paketlari
+          </p>
           <label className="block text-sm">
             <span className="font-medium text-zinc-800">6 oylik paket (so‘m)</span>
             <input
@@ -147,6 +165,34 @@ export default function AdminSettingsPage() {
               min={1000}
               value={form.paket12Som}
               onChange={(e) => setForm((f) => ({ ...f, paket12Som: e.target.value }))}
+            />
+          </label>
+
+          <p className="border-t border-zinc-100 pt-5 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            Landing paketlari
+          </p>
+          <label className="block text-sm">
+            <span className="font-medium text-zinc-800">6 oylik paket (so‘m)</span>
+            <input
+              className={inp}
+              type="number"
+              min={1000}
+              value={form.landingPaket6Som}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, landingPaket6Som: e.target.value }))
+              }
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="font-medium text-zinc-800">12 oylik paket (so‘m)</span>
+            <input
+              className={inp}
+              type="number"
+              min={1000}
+              value={form.landingPaket12Som}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, landingPaket12Som: e.target.value }))
+              }
             />
           </label>
         </div>

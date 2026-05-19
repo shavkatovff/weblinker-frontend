@@ -122,6 +122,30 @@ export function buildVizitkaCreatePayload(opts: {
   return { ...basePayload, ...socialToFlat(opts.social) };
 }
 
+export async function extendVizitkaSubscription(
+  vizitkaId: string,
+  months: 6 | 12,
+): Promise<{ site: unknown }> {
+  const t = getAccessToken();
+  if (!t) throw new Error("Kirish talab qilinadi");
+  const r = await fetch(
+    `${base()}/vizitka/${encodeURIComponent(vizitkaId)}/extend-subscription`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${t}`,
+      },
+      body: JSON.stringify({ months }),
+    },
+  );
+  if (!r.ok) {
+    const m = await r.text();
+    throw new Error(m || `HTTP ${r.status}`);
+  }
+  return (await r.json()) as { site: unknown };
+}
+
 export async function createVizitkaSubscriptionPayment(opts: {
   vizitkaId: string;
   subscriptionMonths: 6 | 12;

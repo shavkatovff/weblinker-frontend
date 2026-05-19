@@ -1,5 +1,8 @@
 import { apiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-storage";
+import { clickInvoiceAmountSom } from "@/lib/click-invoice-amount";
+import type { CreateClickPaymentRes } from "@/lib/click-checkout";
+import type { PublicPausePayload } from "@/lib/vizitka-public";
 import type { LandingPatch, LandingRecord } from "./types";
 
 const base = () => apiBaseUrl();
@@ -50,9 +53,12 @@ export async function listMyLandings(): Promise<LandingRecord[]> {
   return data.landings;
 }
 
-export async function createLanding(payload: {
-  name: string;
-} & LandingPatch): Promise<LandingRecord> {
+export async function createLanding(
+  payload: {
+    name: string;
+    subscriptionMonths?: 6 | 12;
+  } & LandingPatch,
+): Promise<LandingRecord> {
   const r = await fetch(`${base()}/landings`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -110,15 +116,76 @@ export async function uploadLandingImage(
   return data.landing;
 }
 
-/** Ommaviy domen: `weblinker.uz/{name}` orqali ochilganda chaqiriladi (auth shart emas) */
+export type PublicLandingFetchResult =
+  | { landing: LandingRecord }
+  | { publicPause: PublicPausePayload; landing: LandingRecord };
+
+/** Ommaviy domen: `weblinker.uz/{name}` — faol yoki muddati tugagan */
+export async function fetchPublicLandingFromApi(
+  name: string,
+): Promise<PublicLandingFetchResult | null> {
+  try {
+    const r = await fetch(
+      `${base()}/landings/public/${encodeURIComponent(name)}`,
+      { cache: "no-store" },
+    );
+    if (r.status === 404) return null;
+    const json = (await r.json()) as Record<string, unknown>;
+    if (json.publicPause && typeof json.publicPause === "object") {
+      return {
+        publicPause: json.publicPause as PublicPausePayload,
+        landing: json.landing as LandingRecord,
+      };
+    }
+    if (json.landing && typeof json.landing === "object") {
+      return { landing: json.landing as LandingRecord };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function extendLandingSubscription(
+  id: string,
+  months: 6 | 12,
+): Promise<LandingRecord> {
+  const r = await fetch(
+    `${base()}/landings/${encodeURIComponent(id)}/extend-subscription`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ months }),
+    },
+  );
+  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
+  return data.landing;
+}
+
+export async function createLandingSubscriptionPayment(opts: {
+  landingId: string;
+  subscriptionMonths: 6 | 12;
+  amountSom: number;
+}): Promise<CreateClickPaymentRes> {
+  if (!getAccessToken()) throw new Error("Kirish talab qilinadi");
+  const r = await fetch(`${base()}/payments/click`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      amount: clickInvoiceAmountSom(opts.amountSom),
+      landingId: opts.landingId,
+      subscriptionMonths: opts.subscriptionMonths,
+    }),
+  });
+  return readJsonResponse<CreateClickPaymentRes>(r);
+}
+
+/** @deprecated `fetchPublicLandingFromApi` ishlating */
 export async function fetchPublicLandingByName(
   name: string,
 ): Promise<LandingRecord | null> {
-  const r = await fetch(
-    `${base()}/landings/public/${encodeURIComponent(name)}`,
-    { cache: "no-store" },
-  );
-  if (r.status === 404) return null;
-  const data = await readJsonResponse<{ landing: LandingRecord }>(r);
-  return data.landing;
+  const res = await fetchPublicLandingFromApi(name);
+  if (!res) return null;
+  if ("publicPause" in res) return res.landing;
+  return res.landing;
 }

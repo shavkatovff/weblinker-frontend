@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { normalizeSite } from "@/lib/store/normalize";
 import type { UnknownSite } from "@/lib/store/types";
-import { PausedSite } from "./public-site-helpers";
+import { ExpiredPageView } from "./expired-page-view";
+import { ExpiredVizitkaPreview } from "./expired-preview";
 import { SiteRenderer } from "./site-renderer";
 
 export function PublicSiteFromApi({ site: raw }: { site: unknown }) {
@@ -12,7 +13,14 @@ export function PublicSiteFromApi({ site: raw }: { site: unknown }) {
   }, [raw]);
 
   if (normalized.status === "paused") {
-    return <PausedSite businessName={normalized.content.businessName} />;
+    return (
+      <ExpiredPageView
+        businessName={normalized.content.businessName}
+        slug={normalized.slug}
+        siteKind="vizitka"
+        preview={<ExpiredVizitkaPreview site={normalized} />}
+      />
+    );
   }
 
   if (normalized.type === "vizitka") {

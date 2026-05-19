@@ -22,6 +22,7 @@ import { extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { JwtAccessGuard } from '../auth/jwt-access.guard';
 import { ChargeLandingSubscriptionDto } from './dto/charge-landing-subscription.dto';
+import { ExtendLandingSubscriptionDto } from './dto/extend-landing-subscription.dto';
 import { CreateLandingDto } from './dto/create-landing.dto';
 import { UpdateLandingDto } from './dto/update-landing.dto';
 import { LandingsService } from './landings.service';
@@ -62,6 +63,16 @@ export class LandingsController {
   @UseGuards(JwtAccessGuard)
   async chargeAiStarter(@Req() req: { user: { sub: number } }) {
     return this.svc.chargeAiStarter(req.user.sub);
+  }
+
+  @Post(':id/extend-subscription')
+  @UseGuards(JwtAccessGuard)
+  async extendSubscription(
+    @Param('id') id: string,
+    @Req() req: { user: { sub: number; pid: string } },
+    @Body() dto: ExtendLandingSubscriptionDto,
+  ) {
+    return this.svc.extendSubscription(id, req.user.pid, dto.months);
   }
 
   @Get('mine')

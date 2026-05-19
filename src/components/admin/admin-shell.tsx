@@ -12,6 +12,7 @@ const NAV = [
     exact: true as boolean,
   },
   { href: "/gradeadmin/vizitkas", label: "Vizitkalar", icon: IconSites, exact: false },
+  { href: "/gradeadmin/landings", label: "Landinglar", icon: IconLanding, exact: false },
   { href: "/gradeadmin/users", label: "Foydalanuvchilar", icon: IconUsers, exact: false },
   { href: "/gradeadmin/payments", label: "To‘lovlar", icon: IconPayments, exact: false },
   { href: "/gradeadmin/settings", label: "Sozlamalar", icon: IconSettings, exact: false },
@@ -46,6 +47,15 @@ function IconSites({ className }: { className?: string }) {
       <path d="M2.5 7h13" stroke="currentColor" strokeWidth="1.4" />
       <circle cx="5" cy="5.3" r="0.6" fill="currentColor" />
       <circle cx="7" cy="5.3" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconLanding({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <rect x="2.5" y="2.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 6.5h8M5 9h5M5 11.5h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

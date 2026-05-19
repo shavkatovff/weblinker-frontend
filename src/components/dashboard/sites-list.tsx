@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -11,6 +12,7 @@ import { listMyLandings } from "@/lib/landings/client";
 import type { LandingRecord } from "@/lib/landings/types";
 import type { UnknownSite } from "@/lib/store/types";
 import { getAccessToken } from "@/lib/auth-storage";
+import { syncVizitkasFromServer } from "@/lib/sync-vizitkas";
 
 type Row =
   | { kind: "vizitka"; site: UnknownSite }
@@ -25,6 +27,7 @@ const FILTER_OPTIONS: Array<{ id: SitesFilter; label: string }> = [
 ];
 
 export function SitesList() {
+  const searchParams = useSearchParams();
   const { sites, ready } = useSites();
   const [landings, setLandings] = useState<LandingRecord[]>([]);
   const [landingsReady, setLandingsReady] = useState(false);
@@ -60,6 +63,27 @@ export function SitesList() {
     };
   }, [refreshLandings]);
 
+  useEffect(() => {
+    if (searchParams.get("click") !== "1") return;
+    void refreshLandings();
+    if (getAccessToken()) {
+      void syncVizitkasFromServer();
+    }
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("click");
+      url.searchParams.delete("landing");
+      url.searchParams.delete("vizitka");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, [searchParams, refreshLandings]);
+
+  const handleLandingUpdated = useCallback((updated: LandingRecord) => {
+    setLandings((prev) =>
+      prev.map((l) => (l.id === updated.id ? updated : l)),
+    );
+  }, []);
+
   const rows = useMemo<Row[]>(() => {
     const a: Row[] = sites.map((site) => ({ kind: "vizitka", site }));
     const b: Row[] = landings.map((landing) => ({ kind: "landing", landing }));
@@ -85,7 +109,7 @@ export function SitesList() {
 
   if (!listReady) {
     return (
-      <div className="grid grid-cols-1 gap-4 px-5 py-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-10">
+      <div className="grid grid-cols-1 gap-4 px-4 py-6 sm:grid-cols-2 sm:px-5 lg:grid-cols-3 lg:px-10">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
@@ -134,7 +158,7 @@ export function SitesList() {
   }
 
   return (
-    <div className="px-5 py-6 lg:px-10">
+    <div className="min-w-0 px-4 py-5 sm:px-5 sm:py-6 lg:px-10">
       <div
         className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         role="toolbar"
@@ -153,14 +177,14 @@ export function SitesList() {
             </>
           ) : null}
         </p>
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-[color:var(--border)] bg-white p-1">
+        <div className="grid w-full grid-cols-3 gap-1.5 rounded-xl border border-[color:var(--border)] bg-white p-1 sm:flex sm:w-auto sm:flex-wrap">
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               type="button"
               onClick={() => setFilter(opt.id)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                "rounded-lg px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:py-1.5",
                 filter === opt.id
                   ? "bg-black text-white"
                   : "text-neutral-600 hover:bg-neutral-100 hover:text-black",
@@ -222,12 +246,13 @@ export function SitesList() {
               key={`l-${row.landing.id}`}
               landing={row.landing}
               onDeleted={refreshLandings}
+              onUpdated={handleLandingUpdated}
             />
           ),
         )}
         <Link
           href="/dashboard/sites/new"
-          className="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-white p-5 text-center transition-colors hover:border-black"
+          className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-white p-4 text-center transition-colors hover:border-black sm:min-h-[220px] sm:p-5"
         >
             <span
               aria-hidden

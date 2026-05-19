@@ -12,6 +12,11 @@ export class CreateClickPaymentDto {
   @IsString()
   vizitkaId?: string;
 
+  /** Landing muddatini uzaytirish — `subscriptionMonths` bilan birga */
+  @IsOptional()
+  @IsString()
+  landingId?: string;
+
   @IsOptional()
   @IsIn([6, 12])
   subscriptionMonths?: 6 | 12;

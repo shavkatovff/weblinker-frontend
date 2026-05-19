@@ -1,15 +1,31 @@
 "use client";
 
-import { PausedSite, PausedSiteSubscriptionExpired } from "./public-site-helpers";
+import type { UnknownSite } from "@/lib/store/types";
 import type { PublicPausePayload } from "@/lib/vizitka-public";
-export function PublicPauseFromApi({ pause }: { pause: PublicPausePayload }) {
+import {
+  PausedSiteExpiredView,
+  PausedSitePreview,
+  PausedSiteView,
+} from "./paused-site-view";
+
+export function PublicPauseFromApi({
+  pause,
+  site,
+}: {
+  pause: PublicPausePayload;
+  site?: UnknownSite;
+}) {
+  const preview = site ? <PausedSitePreview site={site} /> : undefined;
+
   if (pause.kind === "paused") {
-    return <PausedSite businessName={pause.businessName} />;
+    return <PausedSiteView businessName={pause.businessName} preview={preview} />;
   }
+
   return (
-    <PausedSiteSubscriptionExpired
+    <PausedSiteExpiredView
       businessName={pause.businessName}
       slug={pause.slug}
+      preview={preview}
     />
   );
 }

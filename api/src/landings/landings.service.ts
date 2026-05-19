@@ -11,6 +11,11 @@ import {
 } from '../common/reserved-names';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppSettingsService } from '../settings/app-settings.service';
+import {
+  computeSubscriptionExpiredAt,
+  computeTrialExpiredAt,
+  extendSubscriptionExpiry,
+} from '../vizitka/subscription';
 import type { CreateLandingDto } from './dto/create-landing.dto';
 import type { UpdateLandingDto } from './dto/update-landing.dto';
 
@@ -68,6 +73,52 @@ export class LandingsService {
     return { ok: true };
   }
 
+  /** Mavjud landing obunasini balansdan uzaytirish */
+  async extendSubscription(
+    landingId: string,
+    ownerPublicId: string,
+    months: 6 | 12,
+  ): Promise<{ landing: Landing }> {
+    const priceSom = await this.appSettings.priceLandingSomForMonths(months);
+    const price = new Prisma.Decimal(priceSom);
+    const now = new Date();
+
+    const landing = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.landing.findFirst({
+        where: { id: landingId, ownerPublicId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Landing topilmadi');
+      }
+      const user = await tx.user.findUnique({
+        where: { publicId: ownerPublicId },
+      });
+      if (!user) {
+        throw new NotFoundException('Foydalanuvchi topilmadi');
+      }
+      if (user.balance.lt(price)) {
+        throw new BadRequestException(
+          `Balans yetarli emas. Paket: ${priceSom.toLocaleString('uz-UZ')} so'm. Joriy balans: ${Number(user.balance).toLocaleString('uz-UZ')} so'm.`,
+        );
+      }
+      await tx.user.update({
+        where: { id: user.id },
+        data: { balance: { decrement: price } },
+      });
+      const nextEnd = extendSubscriptionExpiry(existing.expiredAt, months, now);
+      return tx.landing.update({
+        where: { id: landingId },
+        data: {
+          expiredAt: nextEnd,
+          plan: `${months}oy`,
+          expiryNoticeSentAt: null,
+        },
+      });
+    });
+
+    return { landing };
+  }
+
   async listMine(ownerPublicId: string): Promise<{ landings: Landing[] }> {
     const landings = await this.prisma.landing.findMany({
       where: { ownerPublicId },
@@ -81,12 +132,26 @@ export class LandingsService {
     ownerPublicId: string,
     dto: CreateLandingDto & UpdateLandingDto,
   ): Promise<{ landing: Landing }> {
-    const { name, ...rest } = dto;
+    const { name, subscriptionMonths, ...rest } = dto;
     assertNameAllowed(name);
-    // Tekshiruv va insert bitta transactionda — bir vaqtdagi to'qnashuvni kamaytirish uchun.
+    const now = new Date();
+    const settings = await this.appSettings.get();
+    const trialDays = settings.freePublishDays;
+    const expiredAt =
+      subscriptionMonths != null
+        ? computeSubscriptionExpiredAt(subscriptionMonths, now)
+        : computeTrialExpiredAt(now, trialDays);
+    const plan =
+      subscriptionMonths != null ? `${subscriptionMonths}oy` : '10kun';
+
     const landing = await this.prisma.$transaction(async (tx) => {
       await assertNameFreeAcrossModels(tx, name);
-      const data: Record<string, unknown> = { ownerPublicId, name };
+      const data: Record<string, unknown> = {
+        ownerPublicId,
+        name,
+        expiredAt,
+        plan,
+      };
       for (const [k, v] of Object.entries(rest)) {
         if (v !== undefined) data[k] = v;
       }
@@ -121,12 +186,44 @@ export class LandingsService {
   }
 
   /** Ommaviy domen — auth shart emas. `weblinker.uz/{name}` ochilganda chaqiriladi. */
-  async getPublic(name: string): Promise<{ landing: Landing } | null> {
+  async getPublic(
+    name: string,
+  ): Promise<
+    | { landing: Landing }
+    | {
+        publicPause: {
+          kind: 'expired';
+          slug: string;
+          businessName: string;
+        };
+        landing: Landing;
+      }
+    | null
+  > {
     const landing = await this.prisma.landing.findUnique({
       where: { name },
     });
     if (!landing) return null;
-    return { landing };
+
+    const now = new Date();
+    const expiredByDate =
+      landing.expiredAt != null && landing.expiredAt < now;
+    if (!expiredByDate) {
+      return { landing };
+    }
+
+    const businessName =
+      (landing.brandName && landing.brandName.trim()) ||
+      name.replace(/-/g, ' ');
+
+    return {
+      publicPause: {
+        kind: 'expired' as const,
+        slug: landing.name,
+        businessName,
+      },
+      landing,
+    };
   }
 
   async update(

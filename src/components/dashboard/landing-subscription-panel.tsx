@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import {
-  buildVizitkaPackages,
-  formatSom,
-  packagePriceByMonths,
-} from "@/lib/vizitka-packages";
+  buildLandingPackages,
+  landingPackagePriceByMonths,
+} from "@/lib/landing-pricing";
+import { formatSom } from "@/lib/vizitka-packages";
 import {
   FALLBACK_PUBLIC_PRICING,
   fetchVizitkaPricing,
@@ -15,20 +15,18 @@ import {
 import { buildClickPayUrl } from "@/lib/click-checkout";
 import { clickInvoiceAmountSom } from "@/lib/click-invoice-amount";
 import { api, ApiError } from "@/lib/api";
-import { trialDaysLeft } from "@/lib/store/store";
-import { normalizeSite } from "@/lib/store/normalize";
-import type { UnknownSite } from "@/lib/store/types";
 import {
-  createVizitkaSubscriptionPayment,
-  extendVizitkaSubscription,
-} from "@/lib/vizitka-client";
+  createLandingSubscriptionPayment,
+  extendLandingSubscription,
+} from "@/lib/landings/client";
+import type { LandingRecord } from "@/lib/landings/types";
 
 type Props = {
-  site: UnknownSite;
-  onExtended?: (site: UnknownSite) => void;
+  landing: LandingRecord;
+  onExtended?: (landing: LandingRecord) => void;
 };
 
-export function VizitkaSubscriptionPanel({ site, onExtended }: Props) {
+export function LandingSubscriptionPanel({ landing, onExtended }: Props) {
   const [loadingMonths, setLoadingMonths] = useState<6 | 12 | "balance" | null>(
     null,
   );
@@ -39,13 +37,19 @@ export function VizitkaSubscriptionPanel({ site, onExtended }: Props) {
     void fetchVizitkaPricing().then(setPricing).catch(() => {});
   }, []);
 
-  const packages = useMemo(() => buildVizitkaPackages(pricing), [pricing]);
-  const priceByMonths = useMemo(() => packagePriceByMonths(pricing), [pricing]);
+  const packages = useMemo(() => buildLandingPackages(pricing), [pricing]);
+  const priceByMonths = useMemo(
+    () => landingPackagePriceByMonths(pricing),
+    [pricing],
+  );
 
-  if (site.type !== "vizitka") return null;
-
-  const endsIso = site.subscriptionEndsAt ?? site.trialEndsAt;
-  const days = trialDaysLeft(site);
+  const endsIso = landing.expiredAt;
+  const days =
+    endsIso == null
+      ? null
+      : Math.ceil(
+          (new Date(endsIso).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        );
   const endDate =
     endsIso &&
     new Intl.DateTimeFormat("uz-UZ", {
@@ -64,21 +68,20 @@ export function VizitkaSubscriptionPanel({ site, onExtended }: Props) {
         Math.max(0, amountSom - me.user.balance),
       );
       if (need === 0) {
-        const res = await extendVizitkaSubscription(site.id, months);
-        const updated = normalizeSite(res.site as UnknownSite);
+        const updated = await extendLandingSubscription(landing.id, months);
         onExtended?.(updated);
         setMessage("Obuna muddati uzaytirildi (balansdan).");
         setLoadingMonths(null);
         return;
       }
-      const payment = await createVizitkaSubscriptionPayment({
-        vizitkaId: site.id,
+      const payment = await createLandingSubscriptionPayment({
+        landingId: landing.id,
         subscriptionMonths: months,
         amountSom,
       });
       const returnUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}/dashboard/sites?vizitka=${encodeURIComponent(site.id)}&click=1`
+          ? `${window.location.origin}/dashboard/sites?landing=${encodeURIComponent(landing.id)}&click=1`
           : "/dashboard/sites";
       window.location.assign(buildClickPayUrl(payment, returnUrl));
     } catch (e) {
@@ -91,8 +94,7 @@ export function VizitkaSubscriptionPanel({ site, onExtended }: Props) {
     setMessage(null);
     setLoadingMonths("balance");
     try {
-      const res = await extendVizitkaSubscription(site.id, months);
-      const updated = normalizeSite(res.site as UnknownSite);
+      const updated = await extendLandingSubscription(landing.id, months);
       onExtended?.(updated);
       setMessage("Obuna muddati uzaytirildi.");
     } catch (e) {
@@ -125,9 +127,11 @@ export function VizitkaSubscriptionPanel({ site, onExtended }: Props) {
             {endDate ?? "—"}
           </p>
           <p className="mt-0.5 text-xs text-neutral-600">
-            {days <= 0
-              ? "Muddati tugagan yoki bugun tugaydi"
-              : `~${days} kun qoldi`}
+            {days === null
+              ? "Sinov muddati"
+              : days <= 0
+                ? "Muddati tugagan yoki bugun tugaydi"
+                : `~${days} kun qoldi`}
           </p>
         </div>
       </div>
